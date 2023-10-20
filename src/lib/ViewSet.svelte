@@ -84,8 +84,6 @@
 <div class="notes">
 	{#each set?.notes || [] as note}
 		<p>{note}</p>
-	{:else}
-		<p>TODO notes</p>
 	{/each}
 </div>
 <div

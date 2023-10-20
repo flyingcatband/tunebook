@@ -23,6 +23,9 @@
 		{#each section.content as set}
 			<div class="set-incipit">
 				<h2><a href={set.slug}>{set.name}</a></h2>
+				{#if set.notes.length}
+					{#each set.notes as n}<p>{n}</p>{/each}
+				{/if}
 				{#each set.content as tune}
 					<Incipit abc={tune.abc} />
 				{/each}

@@ -18,6 +18,7 @@ type Section = {
 export type Set = {
 	name: string;
 	slug: string;
+	notes: string[];
 	content: Tune[];
 };
 
@@ -36,6 +37,7 @@ export async function GET({}: RequestEvent): Promise<Response> {
 
 	let currentSection: Section | undefined = undefined;
 	let currentSet: Set | undefined = undefined;
+	let lastSeen: null | 'section' | 'set' | 'tune' = null;
 
 	for (const line of tex.toString().split('\n')) {
 		const sectionName = line.match(/\\section\{(.*)\}/)?.[1];
@@ -43,23 +45,31 @@ export async function GET({}: RequestEvent): Promise<Response> {
 		const abcFilename = line.match(/\\abcinput\{(.*)\}/)?.[1];
 		if (sectionName) {
 			currentSection = { name: replaceEscapes(sectionName), content: [] };
+			lastSeen = 'section';
 			folder.content.push(currentSection);
 		}
 		if (subsectionName) {
 			currentSet = {
 				name: replaceEscapes(subsectionName),
 				content: [],
+				notes: [],
 				slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true })
 			};
+			lastSeen = 'set';
 			assertExists(currentSection, 'currentSection').content.push(currentSet);
 		}
 		if (abcFilename) {
 			const abc = (await readFile(`../cat-tunes/${abcFilename}.abc`)).toString();
+			lastSeen = 'tune';
 			assertExists(currentSet, 'currentSet').content.push({
 				abc,
 				filename: abcFilename,
 				slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true })
 			});
+		}
+
+		if (!line.trim().startsWith('\\') && lastSeen == 'set') {
+			assertExists(currentSet, 'currentSet').notes.push(line.replace('\\\\', ''));
 		}
 	}
 	return json(folder);
