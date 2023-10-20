@@ -6,10 +6,13 @@
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorageInt } from './keyedLocalStorage';
 	import { tick } from 'svelte';
+	import type { Set } from './types';
+
+	export let set: Set & { content: { div?: Element }[] };
 
 	let visualTranspose = 0;
-	export let set;
 	let hideControls = false;
+
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
 	$: maxWidth = browser
@@ -51,25 +54,35 @@
 	}
 
 	async function fitToPage() {
+		// Show the first page
 		displayFrom = [0];
 		await tick();
 
+		const div = set.content[0].div;
+		if (typeof div === 'undefined') {
+			alert();
+			throw Error('div is undefined');
+		}
+
 		// Zoom in until we can no longer see all the tunes
 		while (visible.every((vis) => vis) && $maxWidth < 95) {
-			$maxWidth += 5;
+			$maxWidth += 1;
 			await tick();
 		}
-		const div: Element = set.content[0].div;
 
-		// Zoom out until we can see all the tunes
-		while (
-			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
-			$maxWidth > 10
-		) {
-			$maxWidth -= 5;
+		let divRect = div.getBoundingClientRect();
+
+		// Zoom out until we can see all the tunes, and the entirety of the first tune
+		// (First tune will always show, no matter whether it fits fully on the page,
+		// subsequent tunes won't be visible until they fit)
+		while ((visible.some((vis) => !vis) || divRect.bottom > innerHeight) && $maxWidth > 10) {
+			$maxWidth -= 1;
 			await tick();
+			divRect = div.getBoundingClientRect();
 		}
 	}
+
+	let controlsVisible = false;
 </script>
 
 <svelte:head>

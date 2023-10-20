@@ -1,32 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
-import { readdir, readFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import slugify from 'slugify';
+import type { Folder, Section, Set } from '$lib/types';
 
 export const prerender = true;
-
-export type Folder = {
-	name: string;
-	content: Section[];
-};
-
-type Section = {
-	name: string;
-	content: Set[];
-};
-
-export type Set = {
-	name: string;
-	slug: string;
-	notes: string[];
-	content: Tune[];
-};
-
-type Tune = {
-	filename: string;
-	slug: string;
-	abc: string;
-};
 
 export async function GET({}: RequestEvent): Promise<Response> {
 	const tex = await readFile('../cat-tunes/trip-hazard.tex');
