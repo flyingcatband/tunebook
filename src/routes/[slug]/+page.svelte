@@ -4,5 +4,5 @@
 	$: set = data.set;
 </script>
 
-<button on:click={() => history.back()}>Back</button>
+<button class="z-10 fixed left-2" on:click={() => history.back()}>Back</button>
 <ViewSet {set} />
