@@ -47,8 +47,8 @@
 	});
 </script>
 
-<select bind:value={transposition}>
-	{#each availableKeys as [key, transposition]}
+<select bind:value={$transposition}>
+	{#each availableKeys.reverse() as [key, transposition]}
 		<option value={transposition}>{key} {displayTransposition(transposition)}</option>
 	{/each}
 </select>
