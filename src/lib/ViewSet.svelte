@@ -69,6 +69,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{set.name} | Choonbook</title>
+</svelte:head>
+
 <svelte:window bind:innerHeight bind:innerWidth />
 
 <div id="controls" class:hidden={hideControls}>

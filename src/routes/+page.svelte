@@ -10,6 +10,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Choonbook</title>
+</svelte:head>
+
 <h1>Welcome to Choonbook</h1>
 <ul>
 	{#each folder.content as section}
@@ -45,9 +49,6 @@
 		@apply max-w-6xl mx-auto;
 	}
 
-	button {
-		@apply rounded-md bg-yellow-400 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400;
-	}
 	ul {
 		@apply p-2;
 	}
