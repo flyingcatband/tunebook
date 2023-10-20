@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>{set.name} | Choonbook</title>
+	<title>{set?.name} | Choonbook</title>
 </svelte:head>
 
 <svelte:window bind:innerHeight bind:innerWidth />
@@ -83,13 +83,13 @@
 	<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>
 	<button on:click={fitToPage}>Fit to page</button>
 	<p>Current zoom level {$maxWidth}%</p>
+	<div class="notes">
+		{#each set?.notes || [] as note}
+			<p>{note}</p>
+		{/each}
+	</div>
 </div>
 
-<div class="notes">
-	{#each set?.notes || [] as note}
-		<p>{note}</p>
-	{/each}
-</div>
 <div
 	class="flex flex-col mx-auto -mt-8"
 	class:two-column={$maxWidth <= 50}
@@ -119,8 +119,8 @@
 		{/if}
 	{/each}
 </div>
-<button class="text-xl block p-4 mx-auto" on:click={() => (hideControls = !hideControls)}
-	>Toggle controls</button
+<button class="text-xl block p-4 mx-auto bottom-0" on:click={() => (hideControls = !hideControls)}
+	>{hideControls ? 'Show' : 'Hide'} controls</button
 >
 
 {#if displayFrom.length > 1}
