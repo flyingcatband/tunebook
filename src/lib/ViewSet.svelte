@@ -50,7 +50,7 @@
 	async function fitToPage() {
 		displayFrom = [0];
 		await tick();
-		
+
 		// Zoom in until we can no longer see all the tunes
 		while (visible.every((vis) => vis) && $maxWidth < 95) {
 			$maxWidth += 5;
@@ -59,7 +59,10 @@
 		const div: Element = set.content[0].div;
 
 		// Zoom out until we can see all the tunes
-		while ((visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) && $maxWidth > 10) {
+		while (
+			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
+			$maxWidth > 10
+		) {
 			$maxWidth -= 5;
 			await tick();
 		}

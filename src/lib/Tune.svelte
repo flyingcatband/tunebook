@@ -48,16 +48,17 @@
 	let scrollX, scrollY;
 	let touchingScreen = false;
 	$: scrolledToZero = !scrollX && !scrollY;
-	$: visible = !scrolledToZero || touchingScreen
-		? visible
-		: svg?.getBoundingClientRect().height == 0
-		? null
-		: ($refreshVisibility || true) && innerHeight && innerWidth
-		? svg?.getBoundingClientRect().bottom <= innerHeight &&
-		  svg?.getBoundingClientRect().right <= innerWidth
-			? true
-			: false
-		: false;
+	$: visible =
+		!scrolledToZero || touchingScreen
+			? visible
+			: svg?.getBoundingClientRect().height == 0
+			? null
+			: ($refreshVisibility || true) && innerHeight && innerWidth
+			? svg?.getBoundingClientRect().bottom <= innerHeight &&
+			  svg?.getBoundingClientRect().right <= innerWidth
+				? true
+				: false
+			: false;
 </script>
 
 <svelte:window

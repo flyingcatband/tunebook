@@ -55,7 +55,11 @@ export async function GET({}: RequestEvent): Promise<Response> {
 		}
 		if (abcFilename) {
 			const abc = (await readFile(`../cat-tunes/${abcFilename}.abc`)).toString();
-			assertExists(currentSet, 'currentSet').content.push({ abc, filename: abcFilename, slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true }) });
+			assertExists(currentSet, 'currentSet').content.push({
+				abc,
+				filename: abcFilename,
+				slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true })
+			});
 		}
 	}
 	return json(folder);
