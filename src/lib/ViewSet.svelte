@@ -9,7 +9,7 @@
 
 	let visualTranspose = 0;
 	export let set;
-
+	let hideControls = false;
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
 	$: maxWidth = browser
@@ -71,10 +71,15 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<button class="ml-60" on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}>Zoom out</button>
-<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
-<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>{$maxWidth}%
-<button on:click={fitToPage}>Fit to page</button>
+<div id="controls" class:hidden={hideControls}>
+	<button class="ml-60" on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}
+		>Zoom out</button
+	>
+	<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
+	<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>
+	<button on:click={fitToPage}>Fit to page</button>
+	<p>Current zoom level {$maxWidth}%</p>
+</div>
 
 <div class="notes">
 	{#each set?.notes || [] as note}
@@ -112,6 +117,9 @@
 		{/if}
 	{/each}
 </div>
+<button class="text-xl block p-4 mx-auto" on:click={() => (hideControls = !hideControls)}
+	>Toggle controls</button
+>
 
 {#if displayFrom.length > 1}
 	<button
@@ -131,8 +139,6 @@
 {:else}
 	<button class="page next" disabled />
 {/if}
-
-<div class="fixed bg-slate-700 h-4 bottom-0" />
 
 <style lang="postcss">
 	.two-column {
