@@ -12,12 +12,14 @@
 
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
-	$: maxWidth = browser ? keyedLocalStorageInt(`${set.slug}_${orientation}_maxWidth`, 95) : writable(95);
+	$: maxWidth = browser
+		? keyedLocalStorageInt(`${set.slug}_${orientation}_maxWidth`, 95)
+		: writable(95);
 	$: updateWidth(maxWidth);
 
 	function updateWidth(maxWidth: Writable<number>) {
 		maxWidth.subscribe(async () => {
-			refreshVisibility++
+			$refreshVisibility++;
 		});
 	}
 
@@ -26,21 +28,50 @@
 	$: visible = displayFrom && visible;
 	$: visible[displayFrom[displayFrom.length - 1]] =
 		visible[displayFrom[displayFrom.length - 1]] || true;
-	let refreshVisibility = 0;
-	$: displayFrom && refreshVisibility++;
+	let refreshVisibility = writable(0);
+	$: displayFrom && $refreshVisibility++;
+
+	// Don't allocate scroll space for hidden tunes but
+	// briefly add it back in when the zoom level or
+	// current page changes
+	let zeroHeightIfOverflowing = true;
+	refreshVisibility.subscribe(async () => {
+		zeroHeightIfOverflowing = false;
+		await tick();
+		zeroHeightIfOverflowing = true;
+	});
 
 	for (let tune of set.content) {
 		const abcDetails = (browser || null) && renderAbc('*', tune.abc, { visualTranspose })[0];
 		tune.originalKey = abcDetails?.getKeySignature();
 		tune.offset = writable(0);
 	}
+
+	async function fitToPage() {
+		displayFrom = [0];
+		await tick();
+		
+		// Zoom in until we can no longer see all the tunes
+		while (visible.every((vis) => vis) && $maxWidth < 95) {
+			$maxWidth += 5;
+			await tick();
+		}
+		const div: Element = set.content[0].div;
+
+		// Zoom out until we can see all the tunes
+		while ((visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) && $maxWidth > 10) {
+			$maxWidth -= 5;
+			await tick();
+		}
+	}
 </script>
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<button class="ml-60" on:click={() => $maxWidth -= 5} disabled={$maxWidth == 10}>Zoom out</button>
-<button on:click={() => $maxWidth += 5} disabled={$maxWidth >= 95}>Zoom in</button>
-<button on:click={() => $maxWidth = 95}>Reset zoom</button>{$maxWidth}%
+<button class="ml-60" on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}>Zoom out</button>
+<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
+<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>{$maxWidth}%
+<button on:click={fitToPage}>Fit to page</button>
 
 <div class="notes">
 	{#each set?.notes || [] as note}
@@ -49,25 +80,34 @@
 		<p>TODO notes</p>
 	{/each}
 </div>
-<div class="flex flex-col mx-auto -mt-8" class:two-column={$maxWidth <= 50} style="max-width: {2 * $maxWidth + 20}%">
-{#each set.content as tune, i}
-	{#if i >= displayFrom[displayFrom.length - 1]}
-		<div class="visible-{visible[i]} tune" style="max-width: {$maxWidth}%">
-			{#if tune.originalKey}
-				<!-- <KeySelect bind:transposition={visualTranspose} originalKey={tune.originalKey} /> -->
-			{/if}
-			<!-- <button on:click={() => tune.offset.update((offset) => offset - 12)}>Down an octave</button>
+<div
+	class="flex flex-col mx-auto -mt-8"
+	class:two-column={$maxWidth <= 50}
+	style="max-width: {2 * $maxWidth + 20}%"
+>
+	{#each set.content as tune, i}
+		{#if i >= displayFrom[displayFrom.length - 1]}
+			<div
+				class="visible-{visible[i]} tune"
+				style="max-width: {$maxWidth}%"
+				class:zeroHeightIfOverflowing
+				bind:this={tune.div}
+			>
+				{#if tune.originalKey}
+					<!-- <KeySelect bind:transposition={visualTranspose} originalKey={tune.originalKey} /> -->
+				{/if}
+				<!-- <button on:click={() => tune.offset.update((offset) => offset - 12)}>Down an octave</button>
 			<button on:click={() => tune.offset.update((offset) => offset + 12)}>Up an octave</button> -->
-			<Tune
-				abc={tune.abc}
-				{visualTranspose}
-				tuneOffset={tune.offset}
-				bind:visible={visible[i]}
-				{refreshVisibility}
-			/>
-		</div>
-	{/if}
-{/each}
+				<Tune
+					abc={tune.abc}
+					{visualTranspose}
+					tuneOffset={tune.offset}
+					bind:visible={visible[i]}
+					{refreshVisibility}
+				/>
+			</div>
+		{/if}
+	{/each}
 </div>
 
 {#if displayFrom.length > 1}
@@ -89,6 +129,8 @@
 	<button class="page next" disabled />
 {/if}
 
+<div class="fixed bg-slate-700 h-4 bottom-0" />
+
 <style lang="postcss">
 	.two-column {
 		@apply flex-wrap;
@@ -100,6 +142,9 @@
 	}
 	.visible-false {
 		overflow: hidden;
+	}
+	.hideOverflow.visible-false {
+		height: 0;
 	}
 	.tune {
 		width: 90%;
@@ -138,7 +183,7 @@
 		right: 0.5em;
 	}
 
-/* .notes {
+	/* .notes {
 		position: absolute;
 		margin-left: 4.25em;
 		margin-top: 0.25em;
