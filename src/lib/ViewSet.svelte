@@ -103,11 +103,17 @@
 				class:zeroHeightIfOverflowing
 				bind:this={tune.div}
 			>
-				{#if tune.originalKey}
-					<!-- <KeySelect bind:transposition={visualTranspose} originalKey={tune.originalKey} /> -->
-				{/if}
-				<!-- <button on:click={() => tune.offset.update((offset) => offset - 12)}>Down an octave</button>
-			<button on:click={() => tune.offset.update((offset) => offset + 12)}>Up an octave</button> -->
+				<!-- {#if tune.originalKey}
+					<KeySelect bind:transposition={visualTranspose} originalKey={tune.originalKey} />
+				{/if} -->
+				<button
+					class:hidden={hideControls}
+					on:click={() => tune.offset.update((offset) => offset - 12)}>Down an octave</button
+				>
+				<button
+					class:hidden={hideControls}
+					on:click={() => tune.offset.update((offset) => offset + 12)}>Up an octave</button
+				>
 				<Tune
 					abc={tune.abc}
 					{visualTranspose}
