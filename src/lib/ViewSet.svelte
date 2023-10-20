@@ -44,7 +44,10 @@
 	for (let tune of set.content) {
 		const abcDetails = (browser || null) && renderAbc('*', tune.abc, { visualTranspose })[0];
 		tune.originalKey = abcDetails?.getKeySignature();
-		tune.offset = writable(0);
+		tune.offset = browser
+			? keyedLocalStorageInt(`${set.slug}_${tune.slug}_offset`, 0)
+			: writable(0);
+		writable(0);
 	}
 
 	async function fitToPage() {
