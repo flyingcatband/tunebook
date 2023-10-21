@@ -33,8 +33,7 @@ test('autozoom zooms tunes when showing and hiding controls via tapping', async 
 	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
 });
 
-// TODO unskip this as part of #10
-test.skip('tunes continue to show when zoomed out', async ({ page }) => {
+test('tunes continue to show when zoomed out', async ({ page }) => {
 	await page.goto('/Reels-3-Road-to-from-Salvation');
 	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
 

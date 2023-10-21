@@ -55,7 +55,7 @@
 		zeroHeightIfOverflowing = true;
 	});
 
-	// $: innerHeight && innerWidth && fitToPage();
+	$: innerHeight && innerWidth && fitToPage();
 
 	let autoZooming = false;
 	async function fitToPage() {
@@ -85,7 +85,7 @@
 		// subsequent tunes won't be visible until they fit)
 		while (
 			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
-			$maxWidth > 10
+			$maxWidth > 20
 		) {
 			$maxWidth -= 1;
 			await tick();
@@ -106,57 +106,60 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
-	>{hideControls ? 'Show' : 'Hide'} controls</button
->
-<div id="controls" class:hidden={hideControls}>
-	<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}>Zoom out</button>
-	<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
-	<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>
-	<button on:click={fitToPage}>Fit to page</button>
-	<p>Current zoom level {$maxWidth}%</p>
-	<div class="notes">
-		{#each set?.notes || [] as note}
-			<p>{note}</p>
+<div class="page-container">
+	<div>
+		<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
+			>{hideControls ? 'Show' : 'Hide'} controls</button
+		>
+		<div id="controls" class:hidden={hideControls}>
+			<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth <= 20}>Zoom out</button>
+			<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
+			<button on:click={fitToPage}>Fit to page</button>
+			<p>Current zoom level {$maxWidth}%</p>
+			<div class="notes">
+				{#each set?.notes || [] as note}
+					<p>{note}</p>
+				{/each}
+			</div>
+		</div>
+	</div>
+
+	<div class="tunes" class:two-column={$maxWidth <= 50} style="max-width: {2 * $maxWidth + 20}vw">
+		{#each tunes as tune, i}
+			{#if i >= displayFrom[displayFrom.length - 1]}
+				<div
+					class="visible-{visible[i]} tune"
+					style="max-width: {$maxWidth}vw"
+					class:zeroHeightIfOverflowing
+					bind:this={tune.div}
+				>
+					{#if tune.originalKey}
+						<span class="inline-block" class:hidden={hideControls}>
+							<KeySelect transposition={tune.offset} originalKey={tune.originalKey} /></span
+						>
+					{/if}
+					<button
+						class:hidden={hideControls}
+						on:click={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
+					>
+					<button
+						class:hidden={hideControls}
+						on:click={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
+					>
+					<Tune
+						abc={tune.abc}
+						{visualTranspose}
+						tuneOffset={tune.offset}
+						bind:visible={visible[i]}
+						{refreshVisibility}
+					/>
+				</div>
+			{/if}
 		{/each}
 	</div>
 </div>
 
-<div class="tunes" class:two-column={$maxWidth <= 50} style="max-width: {2 * $maxWidth + 20}%">
-	{#each tunes as tune, i}
-		{#if i >= displayFrom[displayFrom.length - 1]}
-			<div
-				class="visible-{visible[i]} tune"
-				style="max-width: {$maxWidth}%"
-				class:zeroHeightIfOverflowing
-				bind:this={tune.div}
-			>
-				{#if tune.originalKey}
-					<span class="inline-block" class:hidden={hideControls}>
-						<KeySelect transposition={tune.offset} originalKey={tune.originalKey} /></span
-					>
-				{/if}
-				<button
-					class:hidden={hideControls}
-					on:click={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
-				>
-				<button
-					class:hidden={hideControls}
-					on:click={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
-				>
-				<Tune
-					abc={tune.abc}
-					{visualTranspose}
-					tuneOffset={tune.offset}
-					bind:visible={visible[i]}
-					{refreshVisibility}
-				/>
-			</div>
-		{/if}
-	{/each}
-</div>
-
-<!-- {#if displayFrom.length > 1}
+{#if displayFrom.length > 1}
 	<button
 		on:click={() => {
 			window.scrollBy(0, -25);
@@ -173,11 +176,14 @@
 	>
 {:else}
 	<button class="page next" disabled />
-{/if} -->
+{/if}
 
 <style lang="postcss">
 	.toggle-controls {
 		@apply block mx-auto text-xl p-4 top-0;
+	}
+	button:not(.page) {
+		@apply relative z-10;
 	}
 	div {
 		@apply block;
@@ -185,14 +191,31 @@
 	#controls {
 		@apply mx-auto;
 	}
+
+	.page-container {
+		display: grid;
+		grid-template-rows: auto 1fr;
+		grid-column: 1fr;
+		max-height: 100svh;
+		box-sizing: border-box;
+	}
+
+	/* TUNE CONTAINERS */
 	.tunes {
 		@apply flex flex-col;
+		min-height: 100%;
+		width: 100%;
 	}
+
 	.two-column {
 		@apply flex-wrap mx-auto;
-		/* TODO replace the following with something that works as part of #10 */
-		max-height: 95svh;
 	}
+
+	.tune :global(select) {
+		@apply relative z-10;
+	}
+
+	/* HIDING TUNES THAT AREN'T DISPLAYED */
 	.visible-null,
 	.visible-false {
 		visibility: hidden;
@@ -203,13 +226,14 @@
 	.hidden {
 		display: none;
 	}
-	.hideOverflow.visible-false {
+	.zeroHeightIfOverflowing.visible-false {
 		height: 0;
 	}
 	.tune {
 		@apply mx-auto w-[90%];
 	}
 
+	/* PAGE TURN BUTTONS */
 	button.page {
 		position: fixed;
 		bottom: 0;
@@ -222,20 +246,24 @@
 	button.back {
 		left: 0;
 	}
+
 	button.next {
 		right: 0;
 	}
+
 	button.page div {
 		width: 0;
 		height: 0;
 		border-top: 30px solid transparent;
 		border-bottom: 30px solid transparent;
 	}
+
 	button.page.back div {
 		border-right: 30px solid lightgray;
 		position: absolute;
 		left: 0.5em;
 	}
+
 	button.page.next div {
 		border-left: 30px solid lightgray;
 		position: absolute;
