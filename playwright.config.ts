@@ -4,7 +4,7 @@ const config: PlaywrightTestConfig = {
 	webServer: {
 		command: 'npm run build && PORT=5173 npm run preview',
 		port: 5173,
-		reuseExistingServer: true,
+		reuseExistingServer: true
 	},
 	use: {
 		hasTouch: true

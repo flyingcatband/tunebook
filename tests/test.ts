@@ -42,7 +42,7 @@ test.skip('tunes continue to show when zoomed out', async ({ page }) => {
 	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
 
 	const button = page.getByRole('button', { name: 'Zoom out' });
-	while (!await button.isDisabled()) {
+	while (!(await button.isDisabled())) {
 		await button.tap();
 		await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
 	}

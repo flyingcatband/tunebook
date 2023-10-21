@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
-import type { RequestEvent } from './$types';
 import { readFile } from 'fs/promises';
-import slugify from 'slugify';
-import type { Folder, Section, Set } from '$lib/types';
+import slugifyPkg from 'slugify';
+import type { Folder, Section, Set } from '$lib/types.js';
+const slugify = slugifyPkg.default;
 
 export const prerender = true;
 
-export async function GET({}: RequestEvent): Promise<Response> {
+export async function GET(): Promise<Response> {
 	const tex = await readFile('../cat-tunes/trip-hazard.tex');
 	const folder: Folder = {
 		name: 'Trip Hazard',
@@ -50,6 +50,7 @@ export async function GET({}: RequestEvent): Promise<Response> {
 			assertExists(currentSet, 'currentSet').notes.push(line.replace('\\\\', ''));
 		}
 	}
+
 	return json(folder);
 }
 

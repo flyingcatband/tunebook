@@ -1,21 +1,32 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { renderAbc } from 'abcjs';
+	import { BROWSER } from 'esm-env';
+	import { renderAbc, type KeySignature } from 'abcjs';
 	import KeySelect from '$lib/KeySelect.svelte';
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
-	import { keyedLocalStorageInt } from './keyedLocalStorage';
+	import { keyedLocalStorageInt } from './keyedLocalStorage.js';
 	import { tick } from 'svelte';
-	import type { Set } from './types';
+	import type { Set, Tune as TuneTy } from './types.js';
 
-	export let set: Set & { content: { div?: Element }[] };
+	export let set: Set;
+
+	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
+
+	let tunes: (TuneTy & ExtraTuneProps)[] = set.content.map((tune) => {
+		const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
+		return {
+			...tune,
+			originalKey: abcDetails?.getKeySignature(),
+			offset: BROWSER ? keyedLocalStorageInt(`${set.slug}_${tune.slug}_offset`, 0) : writable(0)
+		};
+	});
 
 	let visualTranspose = 0;
 	let hideControls = true;
 
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
-	$: maxWidth = browser
+	$: maxWidth = BROWSER
 		? keyedLocalStorageInt(`${set.slug}_${orientation}_maxWidth`, 95)
 		: writable(95);
 	$: updateWidth(maxWidth);
@@ -44,20 +55,11 @@
 		zeroHeightIfOverflowing = true;
 	});
 
-	for (let tune of set.content) {
-		const abcDetails = (browser || null) && renderAbc('*', tune.abc, { visualTranspose })[0];
-		tune.originalKey = abcDetails?.getKeySignature();
-		tune.offset = browser
-			? keyedLocalStorageInt(`${set.slug}_${tune.slug}_offset`, 0)
-			: writable(0);
-		writable(0);
-	}
-
 	// $: innerHeight && innerWidth && fitToPage();
 
 	let autoZooming = false;
 	async function fitToPage() {
-		if (autoZooming || !browser) {
+		if (autoZooming || !BROWSER) {
 			return;
 		}
 		autoZooming = true;
@@ -68,7 +70,7 @@
 		$refreshVisibility++;
 		await tick();
 
-		const div = set.content[0].div;
+		const div = tunes[0].div;
 		if (typeof div === 'undefined') {
 			autoZooming = false;
 			throw Error('div is undefined');
@@ -81,7 +83,10 @@
 		// Zoom out until we can see all the tunes, and the entirety of the first tune
 		// (First tune will always show, no matter whether it fits fully on the page,
 		// subsequent tunes won't be visible until they fit)
-		while ((visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) && $maxWidth > 10) {
+		while (
+			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
+			$maxWidth > 10
+		) {
 			$maxWidth -= 1;
 			await tick();
 		}
@@ -89,7 +94,9 @@
 	}
 
 	$: {
-		hideControls; orientation; fitToPage()
+		hideControls;
+		orientation;
+		fitToPage();
 	}
 </script>
 
@@ -122,7 +129,7 @@
 	class:two-column={$maxWidth <= 50}
 	style="max-width: {2 * $maxWidth + 20}%"
 >
-	{#each set.content as tune, i}
+	{#each tunes as tune, i}
 		{#if i >= displayFrom[displayFrom.length - 1]}
 			<div
 				class="visible-{visible[i]} tune"
@@ -137,11 +144,11 @@
 				{/if}
 				<button
 					class:hidden={hideControls}
-					on:click={() => tune.offset.update((offset) => offset - 12)}>Down an octave</button
+					on:click={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
 				>
 				<button
 					class:hidden={hideControls}
-					on:click={() => tune.offset.update((offset) => offset + 12)}>Up an octave</button
+					on:click={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
 				>
 				<Tune
 					abc={tune.abc}

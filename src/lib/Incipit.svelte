@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
 	import Tune from './Tune.svelte';
-	import './matchall.js';
 
 	export let abc: string;
 	export let fontFamily: string | undefined = undefined;
@@ -25,7 +24,6 @@
 
 <Tune
 	abc={calculateInciptAbc(abc)}
-	fullAbc={abc}
 	{fontFamily}
 	staffwidth={250}
 	fontSize={8}

@@ -2,7 +2,10 @@
 	import Incipit from '$lib/Incipit.svelte';
 
 	export let data;
-	$: folder = data.folder;
+	$: folder = {
+		...data.folder,
+		content: data.folder.content.map((section) => ({ ...section, visible: true }))
+	};
 	$: visibleSections = folder.content.filter((f) => f.visible == true);
 	function resetFilters() {
 		folder.content.forEach((f) => (f.visible = true));

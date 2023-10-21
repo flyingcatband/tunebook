@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { BROWSER } from 'esm-env';
 	import { renderAbc } from 'abcjs';
 	import '@fontsource/saira-condensed/800.css';
 	import '@fontsource/saira-condensed/400.css';
@@ -8,7 +8,6 @@
 	export let visualTranspose = 0;
 	export let tuneOffset: Writable<number>;
 	export let abc: string;
-	export let fullAbc: string | undefined = undefined;
 	export let fontFamily = 'Saira Condensed';
 	export let staffwidth: number | undefined = undefined;
 	export let fontSize = 12;
@@ -28,7 +27,7 @@
 		(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
 	);
 
-	$: if (dots && browser) {
+	$: if (dots && BROWSER) {
 		renderAbc(dots, moreAmendedAbc, {
 			format: {
 				titlefont: `${fontFamily} Bold ${titleSize}`,
@@ -60,11 +59,13 @@
 
 	let innerHeight = 0;
 	let innerWidth = 0;
-	let touchingScreen = false;
-	let touchScreenTimeout: undefined = undefined;
 
-	function updateVisible(boundingRect: DOMRect | undefined, _: number, innerHeight: number, innerWidth: number) {
-		// if (touchingScreen) return;
+	function updateVisible(
+		boundingRect: DOMRect | undefined,
+		_: number,
+		innerHeight: number,
+		innerWidth: number
+	) {
 		if (!boundingRect?.height) {
 			visible = false;
 		} else {
@@ -74,13 +75,7 @@
 	$: updateVisible(svg?.getBoundingClientRect(), $refreshVisibility, innerHeight, innerWidth);
 </script>
 
-<svelte:window
-	bind:innerHeight
-	bind:innerWidth
-	on:touchstart={() => { clearTimeout(touchScreenTimeout) ; touchingScreen = true }}
-	on:touchcancel={() => { touchScreenTimeout = setTimeout(() => touchingScreen = false,  1000)}}
-	on:touchend={() => { touchScreenTimeout = setTimeout(() => touchingScreen = false,  1000)}}
-/>
+<svelte:window bind:innerHeight bind:innerWidth />
 
 <div bind:this={dots} class="mx-auto" />
 
