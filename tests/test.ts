@@ -46,3 +46,30 @@ test('tunes continue to show when zoomed out', async ({ page }) => {
 		await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
 	}
 });
+
+// Unskip as part of #12
+test.skip('first page remains unchanged upon return', async ({ page }) => {
+	const salvation = page.getByText('The Salvation', { exact: true });
+	const errogie = page.getByText('The Road to Errogie', { exact: true });
+	await page.goto('/Reels-3-Road-to-from-Salvation');
+	await expect(errogie).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	const button = page.getByRole('button', { name: 'Zoom in' });
+	while (!await button.isDisabled() && await errogie.isVisible()) {
+		await button.tap();
+	}
+
+	await expect(errogie).not.toBeInViewport();
+	await expect(salvation).toBeInViewport();
+
+	await page.getByRole('button', { name: "Next page"}).click();
+	
+	await expect(errogie).toBeInViewport();
+	await expect(salvation).not.toBeInViewport();
+
+	await page.getByRole('button', { name: "Previous page"}).click();
+
+	await expect(errogie).not.toBeInViewport();
+	await expect(salvation).toBeInViewport();
+});

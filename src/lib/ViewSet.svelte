@@ -166,16 +166,18 @@
 			displayFrom.pop();
 			displayFrom = displayFrom;
 		}}
-		class="page back"><div /></button
-	>{:else}<button disabled class="page back" />
+		class="page back"
+		aria-label="Previous page"><div /></button
+	>{:else}<button disabled class="page back" aria-label="Previous page" />
 {/if}
 {#if !visible[visible.length - 1]}
 	<button
 		on:click={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
-		class="page next"><div /></button
+		class="page next"
+		aria-label="Next page"><div /></button
 	>
 {:else}
-	<button class="page next" disabled />
+	<button class="page next" disabled aria-label="Next page" />
 {/if}
 
 <style lang="postcss">
