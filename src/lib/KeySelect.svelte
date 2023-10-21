@@ -4,6 +4,7 @@
 
 	export let originalKey: KeySignature;
 	export let transposition: Readable<number>;
+	export let tuneSlug: string;
 
 	const ROOTS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
 
@@ -60,7 +61,7 @@
 	});
 </script>
 
-<select bind:value={$transposition}>
+<select bind:value={$transposition} aria-label="Transpose {tuneSlug}">
 	{#each availableKeys.reverse() as [key, transposition]}
 		<option value={transposition}>{key} {displayTransposition(transposition)}</option>
 	{/each}

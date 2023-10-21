@@ -135,7 +135,7 @@
 				>
 					{#if tune.originalKey}
 						<span class="inline-block" class:hidden={hideControls}>
-							<KeySelect transposition={tune.offset} originalKey={tune.originalKey} /></span
+							<KeySelect transposition={tune.offset} originalKey={tune.originalKey} tuneSlug={tune.slug} /></span
 						>
 					{/if}
 					<button

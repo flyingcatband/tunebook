@@ -47,6 +47,21 @@ test('tunes continue to show when zoomed out', async ({ page }) => {
 	}
 });
 
+test('autozoom zooms tunes sensibly after the second tune is transposed', async ({ page }) => {
+	await page.goto('/Reels-1-Ranting-in-Munster');
+	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
+	await page.getByLabel('Transpose contra-reel-star-of-munster').selectOption('BDor (+2)')
+	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Hide controls' }).tap();
+	await expect(page.getByText('Islay Rant', { exact: true })).toBeVisible();
+	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+});
+
 // Unskip as part of #12
 test.skip('first page remains unchanged upon return', async ({ page }) => {
 	const salvation = page.getByText('The Salvation', { exact: true });
