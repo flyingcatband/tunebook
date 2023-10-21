@@ -2,6 +2,7 @@ name: Publish Package to npmjs
 on:
   release:
     types: [published]
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,6 +11,7 @@ jobs:
       # Setup .npmrc file to publish to npm
       - uses: pnpm/action-setup@v2
         with:
+          version: 8
           run_install: |
             - args: [--frozen-lockfile]
       - run: pnpm build
