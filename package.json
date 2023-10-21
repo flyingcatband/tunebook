@@ -9,8 +9,8 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
+		"build": "svelte-package",
+		"preview": "vite build && vite preview",
 		"test": "npm run test:integration && npm run test:unit",
 		"check": "svelte-kit sync && tsc --noEmit && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
