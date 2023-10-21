@@ -10,6 +10,7 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "NodeNext",
+		"module": "NodeNext",
 		"outDir": "dist"
 	}
 	// Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
