@@ -2,7 +2,9 @@
 	"name": "@flyingcatband/tunebook",
 	"version": "0.0.2",
 	"license": "MIT",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

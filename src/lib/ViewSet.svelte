@@ -110,9 +110,7 @@
 	>{hideControls ? 'Show' : 'Hide'} controls</button
 >
 <div id="controls" class:hidden={hideControls}>
-	<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}
-		>Zoom out</button
-	>
+	<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}>Zoom out</button>
 	<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
 	<button on:click={() => ($maxWidth = 95)}>Reset zoom</button>
 	<button on:click={fitToPage}>Fit to page</button>
@@ -124,11 +122,7 @@
 	</div>
 </div>
 
-<div
-	class="tunes"
-	class:two-column={$maxWidth <= 50}
-	style="max-width: {2 * $maxWidth + 20}%"
->
+<div class="tunes" class:two-column={$maxWidth <= 50} style="max-width: {2 * $maxWidth + 20}%">
 	{#each tunes as tune, i}
 		{#if i >= displayFrom[displayFrom.length - 1]}
 			<div
