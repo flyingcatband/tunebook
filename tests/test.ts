@@ -32,3 +32,18 @@ test('autozoom zooms tunes when showing and hiding controls via tapping', async 
 	await expect(page.getByText('Islay Rant', { exact: true })).toBeVisible();
 	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
 });
+
+// TODO unskip this as part of #10
+test.skip('tunes continue to show when zoomed out', async ({ page }) => {
+	await page.goto('/Reels-3-Road-to-from-Salvation');
+	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+
+	const button = page.getByRole('button', { name: 'Zoom out' });
+	while (!await button.isDisabled()) {
+		await button.tap();
+		await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+	}
+});
