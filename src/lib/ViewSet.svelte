@@ -6,7 +6,7 @@
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorageInt } from './keyedLocalStorage.js';
 	import { tick } from 'svelte';
-	import type { Set, Tune as TuneTy } from './types.js';
+	import type { Set, Tune as TuneTy } from './types/index.js';
 
 	export let set: Set;
 
@@ -106,11 +106,11 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<button class="text-xl block p-4 mx-auto top-0" on:click={() => (hideControls = !hideControls)}
+<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
 	>{hideControls ? 'Show' : 'Hide'} controls</button
 >
 <div id="controls" class:hidden={hideControls}>
-	<button class="ml-60" on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}
+	<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}
 		>Zoom out</button
 	>
 	<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
@@ -125,7 +125,7 @@
 </div>
 
 <div
-	class="flex flex-col mx-auto"
+	class="tunes"
 	class:two-column={$maxWidth <= 50}
 	style="max-width: {2 * $maxWidth + 20}%"
 >
@@ -182,27 +182,38 @@
 {/if} -->
 
 <style lang="postcss">
+	.toggle-controls {
+		@apply block mx-auto text-xl p-4 top-0;
+	}
+	div {
+		@apply block;
+	}
+	#controls {
+		@apply mx-auto;
+	}
+	.tunes {
+		@apply flex flex-col;
+	}
 	.two-column {
-		@apply flex-wrap;
+		@apply flex-wrap mx-auto;
+		/* TODO replace the following with something that works as part of #10 */
 		max-height: 95svh;
 	}
 	.visible-null,
 	.visible-false {
 		visibility: hidden;
 	}
-	.visible-null {
-		@apply bg-blue-500;
-	}
 	.visible-false {
-		@apply bg-red-600;
 		overflow: hidden;
+	}
+	.hidden {
+		display: none;
 	}
 	.hideOverflow.visible-false {
 		height: 0;
 	}
 	.tune {
-		width: 90%;
-		margin: auto;
+		@apply mx-auto w-[90%];
 	}
 
 	button.page {

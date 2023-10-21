@@ -1,5 +1,5 @@
 import type { PageLoadEvent } from './$types.js';
-import type { Set } from '$lib/types.js';
+import type { Set } from '$lib/types/index.js';
 import { error } from '@sveltejs/kit';
 
 export async function load({ parent, params: { slug } }: PageLoadEvent): Promise<{ set: Set }> {

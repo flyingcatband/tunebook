@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { readFile } from 'fs/promises';
 import slugifyPkg from 'slugify';
-import type { Folder, Section, Set } from '$lib/types.js';
+import type { Folder, Section, Set } from '$lib/types/index.js';
 const slugify = slugifyPkg.default;
 
 export const prerender = true;

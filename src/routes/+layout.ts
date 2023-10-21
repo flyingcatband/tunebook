@@ -1,5 +1,5 @@
 import type { LoadEvent } from '@sveltejs/kit';
-import type { Folder } from '$lib/types.js';
+import type { Folder } from '$lib/types/index.js';
 
 export function load({ fetch }: LoadEvent): Promise<{ folder: Folder }> {
 	return fetch('/folder.json')
