@@ -11,7 +11,7 @@
 	export let set: Set & { content: { div?: Element }[] };
 
 	let visualTranspose = 0;
-	let hideControls = false;
+	let hideControls = true;
 
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
@@ -53,36 +53,44 @@
 		writable(0);
 	}
 
+	// $: innerHeight && innerWidth && fitToPage();
+
+	let autoZooming = false;
 	async function fitToPage() {
+		if (autoZooming || !browser) {
+			return;
+		}
+		autoZooming = true;
+
 		// Show the first page
 		displayFrom = [0];
+		await tick();
+		$refreshVisibility++;
 		await tick();
 
 		const div = set.content[0].div;
 		if (typeof div === 'undefined') {
-			alert();
+			autoZooming = false;
 			throw Error('div is undefined');
 		}
 
-		// Zoom in until we can no longer see all the tunes
-		while (visible.every((vis) => vis) && $maxWidth < 95) {
-			$maxWidth += 1;
-			await tick();
-		}
-
-		let divRect = div.getBoundingClientRect();
+		// Zoom all the way in so we can no longer see all the tunes
+		$maxWidth = 95;
+		await tick();
 
 		// Zoom out until we can see all the tunes, and the entirety of the first tune
 		// (First tune will always show, no matter whether it fits fully on the page,
 		// subsequent tunes won't be visible until they fit)
-		while ((visible.some((vis) => !vis) || divRect.bottom > innerHeight) && $maxWidth > 10) {
+		while ((visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) && $maxWidth > 10) {
 			$maxWidth -= 1;
 			await tick();
-			divRect = div.getBoundingClientRect();
 		}
+		autoZooming = false;
 	}
 
-	let controlsVisible = false;
+	$: {
+		hideControls; orientation; fitToPage()
+	}
 </script>
 
 <svelte:head>
@@ -91,6 +99,9 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
+<button class="text-xl block p-4 mx-auto top-0" on:click={() => (hideControls = !hideControls)}
+	>{hideControls ? 'Show' : 'Hide'} controls</button
+>
 <div id="controls" class:hidden={hideControls}>
 	<button class="ml-60" on:click={() => ($maxWidth -= 5)} disabled={$maxWidth == 10}
 		>Zoom out</button
@@ -107,7 +118,7 @@
 </div>
 
 <div
-	class="flex flex-col mx-auto -mt-8"
+	class="flex flex-col mx-auto"
 	class:two-column={$maxWidth <= 50}
 	style="max-width: {2 * $maxWidth + 20}%"
 >
@@ -120,7 +131,7 @@
 				bind:this={tune.div}
 			>
 				{#if tune.originalKey}
-					<span class:hidden={hideControls}>
+					<span class="inline-block" class:hidden={hideControls}>
 						<KeySelect transposition={tune.offset} originalKey={tune.originalKey} /></span
 					>
 				{/if}
@@ -143,11 +154,8 @@
 		{/if}
 	{/each}
 </div>
-<button class="text-xl block p-4 mx-auto bottom-0" on:click={() => (hideControls = !hideControls)}
-	>{hideControls ? 'Show' : 'Hide'} controls</button
->
 
-{#if displayFrom.length > 1}
+<!-- {#if displayFrom.length > 1}
 	<button
 		on:click={() => {
 			window.scrollBy(0, -25);
@@ -164,7 +172,7 @@
 	>
 {:else}
 	<button class="page next" disabled />
-{/if}
+{/if} -->
 
 <style lang="postcss">
 	.two-column {
@@ -175,7 +183,11 @@
 	.visible-false {
 		visibility: hidden;
 	}
+	.visible-null {
+		@apply bg-blue-500;
+	}
 	.visible-false {
+		@apply bg-red-600;
 		overflow: hidden;
 	}
 	.hideOverflow.visible-false {
@@ -218,11 +230,6 @@
 		right: 0.5em;
 	}
 
-	/* .notes {
-		position: absolute;
-		margin-left: 4.25em;
-		margin-top: 0.25em;
-	} */
 	p {
 		margin: 0;
 		font-size: 0.8rem;

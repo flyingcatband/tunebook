@@ -4,6 +4,7 @@
 	import '@fontsource/saira-condensed/800.css';
 	import '@fontsource/saira-condensed/400.css';
 	import { writable, type Writable } from 'svelte/store';
+	import { tick } from 'svelte';
 	export let visualTranspose = 0;
 	export let tuneOffset: Writable<number>;
 	export let abc: string;
@@ -14,7 +15,7 @@
 	export let titleSize = fontSize + 6;
 	export let visible = null;
 	let dots: HTMLDivElement;
-	export let refreshVisibility = writable(null);
+	export let refreshVisibility = writable(0);
 
 	// Normalize repeats to start at the beginning of a line rather than the end of the previous line
 	// abcjs displays repeats where written in the abc, so it looks weird if we don't do this
@@ -27,56 +28,58 @@
 		(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
 	);
 
-	$: dots && browser
-		? renderAbc(dots, moreAmendedAbc, {
-				format: {
-					titlefont: `${fontFamily} Bold ${titleSize}`,
-					subtitlefont: `${fontFamily} ${fontSize}`,
-					composerfont: `${fontFamily} ${fontSize}`,
-					historyfont: `${fontFamily} ${fontSize}`,
-					partsfont: `${fontFamily} ${fontSize}`,
-					tempofont: `${fontFamily} ${fontSize}`,
-					infofont: `${fontFamily} ${fontSize}`
-				},
-				visualTranspose: visualTranspose + $tuneOffset,
-				selectTypes: false,
-				responsive: 'resize',
-				// This makes typescript happy that staffwidth is not undefined
-				// If staffwidth is defined, add it as a property, else splat {} to avoid adding staffwidth
-				...((staffwidth && { staffwidth }) || {})
-		  })
-		: undefined;
-	$: svg = dots?.getElementsByTagName('svg')?.[0];
-	$: svg?.querySelectorAll('g[data-name=ending] text').forEach((elem) => {
-		elem.setAttribute('font-family', fontFamily);
-	});
+	$: if (dots && browser) {
+		renderAbc(dots, moreAmendedAbc, {
+			format: {
+				titlefont: `${fontFamily} Bold ${titleSize}`,
+				subtitlefont: `${fontFamily} ${fontSize}`,
+				composerfont: `${fontFamily} ${fontSize}`,
+				historyfont: `${fontFamily} ${fontSize}`,
+				partsfont: `${fontFamily} ${fontSize}`,
+				tempofont: `${fontFamily} ${fontSize}`,
+				infofont: `${fontFamily} ${fontSize}`
+			},
+			visualTranspose: visualTranspose + $tuneOffset,
+			selectTypes: false,
+			responsive: 'resize',
+			// This makes typescript happy that staffwidth is not undefined
+			// If staffwidth is defined, add it as a property, else splat {} to avoid adding staffwidth
+			...((staffwidth && { staffwidth }) || {})
+		});
+		updateSvg();
+	}
 
-	let innerHeight = 0; // = browser ? window.innerHeight : 1000;
+	let svg: SVGElement | undefined = undefined;
+	async function updateSvg() {
+		await tick();
+		svg = dots?.getElementsByTagName('svg')?.[0];
+		svg.querySelectorAll('g[data-name=ending] text').forEach((elem) => {
+			elem.setAttribute('font-family', fontFamily);
+		});
+	}
+
+	let innerHeight = 0;
 	let innerWidth = 0;
-	let scrollX, scrollY;
 	let touchingScreen = false;
-	$: scrolledToZero = !scrollX && !scrollY;
-	$: visible =
-		!scrolledToZero || touchingScreen
-			? visible
-			: svg?.getBoundingClientRect().height == 0
-			? null
-			: ($refreshVisibility || true) && innerHeight && innerWidth
-			? svg?.getBoundingClientRect().bottom <= innerHeight &&
-			  svg?.getBoundingClientRect().right <= innerWidth
-				? true
-				: false
-			: false;
+	let touchScreenTimeout: undefined = undefined;
+
+	function updateVisible(boundingRect: DOMRect | undefined, _: number, innerHeight: number, innerWidth: number) {
+		// if (touchingScreen) return;
+		if (!boundingRect?.height) {
+			visible = false;
+		} else {
+			visible = boundingRect.bottom <= innerHeight && boundingRect.right <= innerWidth;
+		}
+	}
+	$: updateVisible(svg?.getBoundingClientRect(), $refreshVisibility, innerHeight, innerWidth);
 </script>
 
 <svelte:window
 	bind:innerHeight
 	bind:innerWidth
-	bind:scrollX
-	bind:scrollY
-	on:touchstart={() => (touchingScreen = true)}
-	on:touchcancel={() => (touchingScreen = false)}
-	on:touchend={() => (touchingScreen = false)}
+	on:touchstart={() => { clearTimeout(touchScreenTimeout) ; touchingScreen = true }}
+	on:touchcancel={() => { touchScreenTimeout = setTimeout(() => touchingScreen = false,  1000)}}
+	on:touchend={() => { touchScreenTimeout = setTimeout(() => touchingScreen = false,  1000)}}
 />
 
 <div bind:this={dots} class="mx-auto" />

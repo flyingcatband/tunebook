@@ -6,6 +6,9 @@ const config: PlaywrightTestConfig = {
 		port: 5173,
 		reuseExistingServer: true,
 	},
+	use: {
+		hasTouch: true
+	},
 	testDir: 'tests',
 	testMatch: /(.+\.)?(test|spec)\.[jt]s/
 };
