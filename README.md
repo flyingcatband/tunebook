@@ -8,7 +8,7 @@ A set of svelte components for responsively displaying tunes on a webpage from A
 npm install @flyingcatband/tunebook
 ```
 
-Demo site: https://taas-demo.pages.dev/
+Demo site: https://flying-cat-tunebook.pages.dev/
 
 Template of example usage: https://github.com/flyingcatband/tunebook-template
 
