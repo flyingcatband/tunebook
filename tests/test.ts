@@ -91,29 +91,29 @@ test('manually zoomed tunes reflow to fit page when controls are hidden', async 
 	await expect(errogie).toBeInViewport();
 });
 
-// Unskip as part of #12
-test.skip('first page remains unchanged upon return', async ({ page }) => {
-	const salvation = page.getByText('The Salvation', { exact: true });
-	const errogie = page.getByText('The Road to Errogie', { exact: true });
+test('first page remains unchanged upon return', async ({ page }) => {
+	const secondTune = page.getByText('The Salvation', { exact: true });
+	const thirdTune = page.getByText('The Road to Errogie', { exact: true });
 	await page.goto('/Reels-3-Road-to-from-Salvation');
-	await expect(errogie).toBeInViewport();
+	await expect(thirdTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
-	const button = page.getByRole('button', { name: 'Zoom in' });
-	while (!(await button.isDisabled()) && (await errogie.isVisible())) {
-		await button.tap();
+	const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+	// Zoom in until the third tune disappears
+	while (!(await zoomIn.isDisabled()) && (await thirdTune.isVisible())) {
+		await zoomIn.tap();
 	}
 
-	await expect(errogie).not.toBeInViewport();
-	await expect(salvation).toBeInViewport();
+	await expect(thirdTune).not.toBeInViewport();
+	await expect(secondTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Next page' }).click();
 
-	await expect(errogie).toBeInViewport();
-	await expect(salvation).not.toBeInViewport();
+	await expect(thirdTune).toBeInViewport();
+	await expect(secondTune).not.toBeInViewport();
 
 	await page.getByRole('button', { name: 'Previous page' }).click();
 
-	await expect(errogie).not.toBeInViewport();
-	await expect(salvation).toBeInViewport();
+	await expect(thirdTune).not.toBeInViewport();
+	await expect(secondTune).toBeInViewport();
 });

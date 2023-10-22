@@ -53,6 +53,7 @@
 	refreshVisibility.subscribe(async () => {
 		zeroHeightIfOverflowing = false;
 		await tick();
+		await tick();
 		zeroHeightIfOverflowing = true;
 	});
 
