@@ -18,7 +18,7 @@
 
 	// Normalize repeats to start at the beginning of a line rather than the end of the previous line
 	// abcjs displays repeats where written in the abc, so it looks weird if we don't do this
-	$: amendedAbc = abc.replace(/\|: *\n/g, '||\n|:').replace(/:: .*\n/g, ':|\n|:');
+	$: amendedAbc = abc.replace(/\|: *\n/g, '||\n|:').replace(/::.*\n/g, ':|\n|:');
 	// TODO might be nice to say what these mean eg +2 = for Bb instruments
 	$: transpose_summary =
 		$tuneOffset == 0 ? 'Concert pitch' : `Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset}`;
