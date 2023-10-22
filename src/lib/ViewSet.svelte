@@ -8,7 +8,9 @@
 	import { tick } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
+	export let folderName: string = "Tunebook";
 	export let set: Set;
+	export let fontFamily: string | undefined = undefined;
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
@@ -108,7 +110,7 @@
 </script>
 
 <svelte:head>
-	<title>{set?.name} | Choonbook</title>
+	<title>{set?.name} | {folderName}</title>
 </svelte:head>
 
 <svelte:window bind:innerHeight bind:innerWidth />
@@ -150,7 +152,7 @@
 		</div>
 	</div>
 
-	<div class="tunes" class:two-column={$maxWidth <= 50} style="max-width: {2 * $maxWidth + 20}vw">
+	<div class="tunes" class:two-column={$maxWidth <= 50}>
 		{#each tunes as tune, i}
 			{#if i >= displayFrom[displayFrom.length - 1]}
 				<div
@@ -182,6 +184,7 @@
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}
 						{refreshVisibility}
+						{fontFamily}
 					/>
 				</div>
 			{/if}

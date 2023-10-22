@@ -5,4 +5,4 @@
 </script>
 
 <button class="z-10 fixed left-2" on:click={() => history.back()}>Back</button>
-<ViewSet {set} />
+<ViewSet {set} folderName={data.folder.name} fontFamily="Saira Condensed" />

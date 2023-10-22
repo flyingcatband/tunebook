@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Welcome to Choonbook' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Trip Hazard', exact: true })).toBeVisible();
 });
 
 test('index page can be filtered', async ({ page }) => {
@@ -74,21 +74,25 @@ test('autozoom zooms tunes sensibly after the second tune is transposed', async 
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	const salvation = page.getByText('The Salvation', { exact: true });
-	const errogie = page.getByText('The Road to Errogie', { exact: true });
+	const secondTune = page.getByText('The Salvation', { exact: true });
+	const thirdTune = page.getByText('The Road to Errogie', { exact: true });
 	await page.goto('/Reels-3-Road-to-from-Salvation');
-	await expect(errogie).toBeInViewport();
+	await expect(secondTune).toBeInViewport();
+	await expect(thirdTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await expect(errogie).toBeInViewport();
+	await expect(secondTune).toBeInViewport();
+	await expect(thirdTune).toBeInViewport();
 	const button = page.getByRole('button', { name: 'Zoom in' });
-	while (!(await button.isDisabled()) && (await errogie.isVisible())) {
+	while (!(await button.isDisabled()) && (await thirdTune.isVisible())) {
 		await button.tap();
 	}
 
-	await expect(errogie).not.toBeInViewport();
+	await expect(thirdTune).not.toBeInViewport();
+	await expect(secondTune).toBeInViewport();
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
-	await expect(errogie).toBeInViewport();
+	await expect(secondTune).toBeInViewport();
+	await expect(thirdTune).toBeInViewport();
 });
 
 test('first page remains unchanged upon return', async ({ page }) => {

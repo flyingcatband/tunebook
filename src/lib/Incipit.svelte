@@ -10,7 +10,7 @@
 		return firstChar + rest?.split('|').slice(0, 2).join('|') + '|';
 	}
 
-	function calculateInciptAbc(abc: string): string {
+	function calculateIncipitAbc(abc: string): string {
 		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '\n');
 		const tuneStartIndex = trimmedAbc.matchAll(/\n(?:[^A-Z]|[A-Z][^:])/g).next()?.value?.index + 1;
 		const preservedFields: string[] = trimmedAbc
@@ -23,10 +23,11 @@
 </script>
 
 <Tune
-	abc={calculateInciptAbc(abc)}
+	abc={calculateIncipitAbc(abc)}
 	{fontFamily}
 	staffwidth={250}
 	fontSize={8}
 	titleSize={12}
 	tuneOffset={writable(0)}
+	showTransposition={false}
 />
