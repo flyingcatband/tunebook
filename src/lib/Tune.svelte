@@ -20,22 +20,27 @@
 	$: amendedAbc = abc.replace(/\|: *\n/g, '||\n|:').replace(/::.*\n/g, ':|\n|:');
 	// TODO might be nice to say what these mean eg +2 = for Bb instruments
 	$: transpose_summary = `Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset}`;
-	$: moreAmendedAbc = showTransposition && $tuneOffset !== 0 ? amendedAbc.replace(
-		/\n(T:[^\n]*)\n/,
-		(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
-	) : amendedAbc;
+	$: moreAmendedAbc =
+		showTransposition && $tuneOffset !== 0
+			? amendedAbc.replace(
+					/\n(T:[^\n]*)\n/,
+					(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
+			  )
+			: amendedAbc;
 
 	$: if (dots && BROWSER) {
 		renderAbc(dots, moreAmendedAbc, {
-			format: fontFamily ? {
-				titlefont: `${fontFamily} Bold ${titleSize}`,
-				subtitlefont: `${fontFamily} ${fontSize}`,
-				composerfont: `${fontFamily} ${fontSize}`,
-				historyfont: `${fontFamily} ${fontSize}`,
-				partsfont: `${fontFamily} ${fontSize}`,
-				tempofont: `${fontFamily} ${fontSize}`,
-				infofont: `${fontFamily} ${fontSize}`
-			} : {},
+			format: fontFamily
+				? {
+						titlefont: `${fontFamily} Bold ${titleSize}`,
+						subtitlefont: `${fontFamily} ${fontSize}`,
+						composerfont: `${fontFamily} ${fontSize}`,
+						historyfont: `${fontFamily} ${fontSize}`,
+						partsfont: `${fontFamily} ${fontSize}`,
+						tempofont: `${fontFamily} ${fontSize}`,
+						infofont: `${fontFamily} ${fontSize}`
+				  }
+				: {},
 			visualTranspose: visualTranspose + $tuneOffset,
 			selectTypes: false,
 			responsive: 'resize',

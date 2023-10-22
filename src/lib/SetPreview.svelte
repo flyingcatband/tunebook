@@ -3,7 +3,7 @@
 	import type { Set } from '$lib/types/index.js';
 
 	export let set: Set;
-    export let tuneFont: string | undefined = undefined;
+	export let tuneFont: string | undefined = undefined;
 </script>
 
 <div class="set-preview">
@@ -20,6 +20,6 @@
 	.set-preview {
 		@apply w-80 py-4 px-2;
 		@apply text-center;
-        @apply box-border;
+		@apply box-border;
 	}
 </style>

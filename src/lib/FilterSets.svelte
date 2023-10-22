@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Section } from '$lib/types/index.js';
 
-	export let folder: { name: string, content: (Section & { visible?: boolean })[] };
+	export let folder: { name: string; content: (Section & { visible?: boolean })[] };
 	resetFilters();
-    let visibleSections = folder.content;
+	let visibleSections = folder.content;
 	$: visibleSections = folder.content.filter((f) => f.visible);
 	function resetFilters() {
 		if (!folder) return;
@@ -20,7 +20,7 @@
 	<li><button on:click={resetFilters}>Any type of tune</button></li>
 </ul>
 
-<slot {visibleSections}></slot>
+<slot {visibleSections} />
 
 <style lang="postcss">
 	ul {
@@ -29,9 +29,9 @@
 	input[type='checkbox'] {
 		@apply mr-1;
 	}
-    h2 {
-        @apply text-center mt-4 -mb-3;
-    }
+	h2 {
+		@apply text-center mt-4 -mb-3;
+	}
 	li {
 		@apply my-2;
 	}

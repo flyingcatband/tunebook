@@ -8,7 +8,7 @@
 	import { tick } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
-	export let folderName: string = "Tunebook";
+	export let folderName: string = 'Tunebook';
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
 
@@ -25,8 +25,10 @@
 
 	let visualTranspose = 0;
 	let hideControls = true;
-	$: autozoomEnabled = BROWSER ? keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true) : writable(true);
-	
+	$: autozoomEnabled = BROWSER
+		? keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true)
+		: writable(true);
+
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
 	$: maxWidth = BROWSER

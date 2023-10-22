@@ -1,11 +1,10 @@
-
 <script lang="ts">
 	import FilterSets from '$lib/FilterSets.svelte';
 	import SetPreview from '$lib/SetPreview.svelte';
 	import type { Folder } from './types/index.js';
 
 	export let folder: Folder;
-    export let tuneFont: string | undefined = undefined;
+	export let tuneFont: string | undefined = undefined;
 </script>
 
 <FilterSets {folder} let:visibleSections>

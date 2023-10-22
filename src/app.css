@@ -24,7 +24,8 @@ button {
 	@apply cursor-pointer bg-emerald-800 text-white px-2.5 py-1.5 font-bold hover:bg-opacity-80 rounded-md;
 }
 
-button, select {
+button,
+select {
 	@apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800;
 }
 

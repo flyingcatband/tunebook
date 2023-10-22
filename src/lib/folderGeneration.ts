@@ -4,9 +4,12 @@ import slugifyPkg from 'slugify';
 import type { Folder, Section, Set } from '$lib/types/index.js';
 const slugify = slugifyPkg.default;
 
-export async function generateFolderFromLatex(folderName: string, latexPath: string): Promise<Folder> {
+export async function generateFolderFromLatex(
+	folderName: string,
+	latexPath: string
+): Promise<Folder> {
 	const tex = await readFile(latexPath);
-    const rootDirectory = path.dirname(latexPath);
+	const rootDirectory = path.dirname(latexPath);
 	const folder: Folder = {
 		name: folderName,
 		content: []
