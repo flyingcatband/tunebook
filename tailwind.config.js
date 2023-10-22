@@ -6,7 +6,7 @@ export default {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['"Saira Condensed"', ...defaultTheme.fontFamily.sans]
+				sans: ['Inter', ...defaultTheme.fontFamily.sans]
 			}
 		}
 	},

@@ -2,81 +2,88 @@ import { expect, test } from '@playwright/test';
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Trip Hazard', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Demo folder', exact: true })).toBeVisible();
 });
 
 test('index page can be filtered', async ({ page }) => {
 	await page.goto('/');
-	const errogie = page.getByText('The Road to Errogie', { exact: true });
-	const tooManySocks = page.getByText('Too Many Socks', { exact: true });
-	await expect(errogie).toBeVisible();
-	await expect(tooManySocks).toBeVisible();
-	await page.getByText('Contra Choonz').tap();
-	await expect(errogie).not.toBeVisible();
-	await expect(tooManySocks).toBeVisible();
+	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
+	const jig = page.getByText('Seven Stars', { exact: true });
+	await expect(reel).toBeVisible();
+	await expect(jig).toBeVisible();
+
+	// Uncheck the checkbox
+	await page.getByText('Reels', { exact: true }).tap();
+	await expect(reel).not.toBeVisible();
+	await expect(jig).toBeVisible();
 });
 
 test('autozoom zooms tunes when showing and hiding controls via clicking', async ({ page }) => {
-	await page.goto('/Reels-1-Ranting-in-Munster');
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).click();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Hide controls' }).click();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 });
 
 test('autozoom zooms tunes when showing and hiding controls via tapping', async ({ page }) => {
-	await page.goto('/Reels-1-Ranting-in-Munster');
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeVisible();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeVisible();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 });
 
 test('tunes continue to show when zoomed out', async ({ page }) => {
-	await page.goto('/Reels-3-Road-to-from-Salvation');
-	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+	const tune = page.getByText("Paddy's Trip To Scotland", { exact: true });
+	await page.goto('/Reels-1-Some-reels');
+	await expect(tune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+	await expect(tune).toBeInViewport();
 
 	const button = page.getByRole('button', { name: 'Zoom out' });
 	while (!(await button.isDisabled())) {
 		await button.tap();
-		await expect(page.getByText('The Road to Errogie', { exact: true })).toBeInViewport();
+		await expect(tune).toBeInViewport();
 	}
 });
 
 test('autozoom zooms tunes sensibly after the second tune is transposed', async ({ page }) => {
-	await page.goto('/Reels-1-Ranting-in-Munster');
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
-	await page.getByLabel('Transpose contra-reel-star-of-munster').selectOption('BDor (+2)');
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+
+	const transpositionSubtitle = page.getByText('Transposed +2', { exact: true });
+	await expect(transpositionSubtitle).not.toBeInViewport();
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (+2)');
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await expect(transpositionSubtitle).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
-	await expect(page.getByText('Islay Rant', { exact: true })).toBeVisible();
-	await expect(page.getByText('The Star Of Munster', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeVisible();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	const secondTune = page.getByText('The Salvation', { exact: true });
-	const thirdTune = page.getByText('The Road to Errogie', { exact: true });
-	await page.goto('/Reels-3-Road-to-from-Salvation');
+	const secondTune = page.getByText('The Silver Spear', { exact: true });
+	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
+	await page.goto('/Reels-1-Some-reels');
 	await expect(secondTune).toBeInViewport();
 	await expect(thirdTune).toBeInViewport();
 
@@ -96,9 +103,9 @@ test('manually zoomed tunes reflow to fit page when controls are hidden', async 
 });
 
 test('first page remains unchanged upon return', async ({ page }) => {
-	const secondTune = page.getByText('The Salvation', { exact: true });
-	const thirdTune = page.getByText('The Road to Errogie', { exact: true });
-	await page.goto('/Reels-3-Road-to-from-Salvation');
+	const secondTune = page.getByText('The Silver Spear', { exact: true });
+	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
+	await page.goto('/Reels-1-Some-reels');
 	await expect(thirdTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();

@@ -49,7 +49,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@fontsource/saira-condensed": "^5.0.8",
 		"abcjs": "^6.2.2",
 		"esm-env": "^1.0.0",
 		"slugify": "^1.6.6",

@@ -5,9 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
-  '@fontsource/saira-condensed':
-    specifier: ^5.0.8
-    version: 5.0.8
   abcjs:
     specifier: ^6.2.2
     version: 6.2.2
@@ -328,10 +325,6 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
-
-  /@fontsource/saira-condensed@5.0.8:
-    resolution: {integrity: sha512-UpWWRL02CbLJMEyPNz6spHFldBFecMZP/IQXKf4UiZJxgbrwHIXzojGQLnRsRx2Dcwag5+zEFv7t2wtHBCIB9Q==}
-    dev: false
 
   /@humanwhocodes/config-array@0.11.12:
     resolution: {integrity: sha512-NlGesA1usRNn6ctHCZ21M4/dKPgW9Nn1FypRdIKKgZOKzkVV4T1FlK5mBiLhHBCDmEbdQG0idrcXlbZfksJ+RA==}
