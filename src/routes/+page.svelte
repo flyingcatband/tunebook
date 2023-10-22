@@ -1,13 +1,13 @@
 <script lang="ts">
 	import Incipit from '$lib/Incipit.svelte';
+	import type { Section } from '$lib/types/index.js';
 
 	export let data;
-	$: folder = {
-		...data.folder,
-		content: data.folder.content.map((section) => ({ ...section, visible: true }))
-	};
-	$: visibleSections = folder.content.filter((f) => f.visible == true);
+	let folder = data.folder as { content: (Section & { visible?: boolean })[] };
+	resetFilters();
+	$: visibleSections = folder.content.filter((f) => f.visible);
 	function resetFilters() {
+		if (!folder) return;
 		folder.content.forEach((f) => (f.visible = true));
 		folder.content = folder.content;
 	}
@@ -60,5 +60,8 @@
 	}
 	li {
 		@apply my-2;
+	}
+	label {
+		user-select: none;
 	}
 </style>

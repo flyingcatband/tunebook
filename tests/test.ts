@@ -5,6 +5,17 @@ test('index page has expected h1', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Welcome to Choonbook' })).toBeVisible();
 });
 
+test('index page can be filtered', async ({ page }) => {
+	await page.goto('/');
+	const errogie = page.getByText('The Road to Errogie', { exact: true });
+	const tooManySocks = page.getByText('Too Many Socks', { exact: true });
+	await expect(errogie).toBeVisible();
+	await expect(tooManySocks).toBeVisible();
+	await page.getByText('Contra Choonz').tap();
+	await expect(errogie).not.toBeVisible();
+	await expect(tooManySocks).toBeVisible();
+});
+
 test('autozoom zooms tunes when showing and hiding controls via clicking', async ({ page }) => {
 	await page.goto('/Reels-1-Ranting-in-Munster');
 	await expect(page.getByText('Islay Rant', { exact: true })).toBeInViewport();
