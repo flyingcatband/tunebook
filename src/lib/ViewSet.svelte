@@ -4,7 +4,7 @@
 	import KeySelect from '$lib/KeySelect.svelte';
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
-	import { keyedLocalStorageInt } from './keyedLocalStorage.js';
+	import { keyedLocalStorage } from './keyedLocalStorage.js';
 	import { tick } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
@@ -17,17 +17,18 @@
 		return {
 			...tune,
 			originalKey: abcDetails?.getKeySignature(),
-			offset: BROWSER ? keyedLocalStorageInt(`${set.slug}_${tune.slug}_offset`, 0) : writable(0)
+			offset: BROWSER ? keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0) : writable(0)
 		};
 	});
 
 	let visualTranspose = 0;
 	let hideControls = true;
-
+	$: autozoomEnabled = BROWSER ? keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true) : writable(true);
+	
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
 	$: maxWidth = BROWSER
-		? keyedLocalStorageInt(`${set.slug}_${orientation}_maxWidth`, 95)
+		? keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95)
 		: writable(95);
 	$: updateWidth(maxWidth);
 
@@ -60,6 +61,11 @@
 	let autoZooming = false;
 	async function fitToPage() {
 		if (autoZooming || !BROWSER) {
+			return;
+		}
+		if (!$autozoomEnabled) {
+			// We still want to make sure the tunes appear properly
+			$refreshVisibility++;
 			return;
 		}
 		autoZooming = true;
@@ -112,9 +118,28 @@
 			>{hideControls ? 'Show' : 'Hide'} controls</button
 		>
 		<div id="controls" class:hidden={hideControls}>
-			<button on:click={() => ($maxWidth -= 5)} disabled={$maxWidth <= 20}>Zoom out</button>
-			<button on:click={() => ($maxWidth += 5)} disabled={$maxWidth >= 95}>Zoom in</button>
-			<button on:click={fitToPage}>Fit to page</button>
+			<button
+				on:click={() => {
+					$autozoomEnabled = false;
+					$maxWidth -= 5;
+				}}
+				disabled={$maxWidth <= 20}>Zoom out</button
+			>
+			<button
+				on:click={() => {
+					$autozoomEnabled = false;
+					$maxWidth += 5;
+				}}
+				disabled={$maxWidth >= 95}>Zoom in</button
+			>
+			{#if !$autozoomEnabled}
+				<button
+					on:click={() => {
+						$autozoomEnabled = true;
+						fitToPage();
+					}}>Fit to page</button
+				>
+			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
 			<div class="notes">
 				{#each set?.notes || [] as note}
@@ -135,7 +160,11 @@
 				>
 					{#if tune.originalKey}
 						<span class="inline-block" class:hidden={hideControls}>
-							<KeySelect transposition={tune.offset} originalKey={tune.originalKey} tuneSlug={tune.slug} /></span
+							<KeySelect
+								transposition={tune.offset}
+								originalKey={tune.originalKey}
+								tuneSlug={tune.slug}
+							/></span
 						>
 					{/if}
 					<button
