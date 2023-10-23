@@ -16,6 +16,9 @@ jobs:
             - args: [--frozen-lockfile]
       - run: pnpm build
       - uses: JS-DevTools/npm-publish@v3
+        id: publish
         with:
           access: public
           token: ${{ secrets.NPM_TOKEN }}
+      - if: ${{ ! steps.publish.outputs.type }}
+        run: echo "💥 Package wasn't updated on npm! did you forget to update the version number in your package.json? 💥" && exit 1
