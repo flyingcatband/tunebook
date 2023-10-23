@@ -3,12 +3,18 @@
 	import { renderAbc } from 'abcjs';
 	import { writable, type Writable } from 'svelte/store';
 	import { tick } from 'svelte';
-	export let visualTranspose = 0;
+
+	/** a store containing the number of semitones to transpose this tune */
 	export let tuneOffset: Writable<number>;
+	/** The full abc of a single tune */
 	export let abc: string;
+	/** If you want to set a custom font for the text that goes around tunes, pass in its name here */
 	export let fontFamily: string | undefined = undefined;
+	/** This is the width in pixels of the abcjs snippet. You probably don't need to override, the default is 740px  */
 	export let staffwidth: number | undefined = undefined;
+	/** Font size for most of the text around the rendered abc */
 	export let fontSize = 12;
+	/** Font size the title the rendered abc */
 	export let titleSize = fontSize + 6;
 	export let visible = null;
 	export let showTransposition = true;
@@ -41,7 +47,7 @@
 						infofont: `${fontFamily} ${fontSize}`
 				  }
 				: {},
-			visualTranspose: visualTranspose + $tuneOffset,
+			visualTranspose: $tuneOffset,
 			selectTypes: false,
 			responsive: 'resize',
 			// This makes typescript happy that staffwidth is not undefined

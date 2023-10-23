@@ -23,7 +23,6 @@
 		};
 	});
 
-	let visualTranspose = 0;
 	let hideControls = true;
 	$: autozoomEnabled = BROWSER
 		? keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true)
@@ -182,7 +181,6 @@
 					>
 					<Tune
 						abc={tune.abc}
-						{visualTranspose}
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}
 						{refreshVisibility}

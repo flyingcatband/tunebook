@@ -2,7 +2,9 @@
 	import { writable } from 'svelte/store';
 	import Tune from './Tune.svelte';
 
+	/** The full abc of the tune you want to render */
 	export let abc: string;
+	/** If you want to set a custom font for the title of the tune, pass in its name here */
 	export let fontFamily: string | undefined = undefined;
 
 	function firstTwoBars(abcTuneSection: string): string {

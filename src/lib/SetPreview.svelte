@@ -3,6 +3,7 @@
 	import type { Set } from '$lib/types/index.js';
 
 	export let set: Set;
+	/** If you want to set a custom font for the text that goes around tunes, pass in its name here */
 	export let tuneFont: string | undefined = undefined;
 </script>
 

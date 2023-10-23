@@ -4,6 +4,7 @@
 	import type { Folder } from './types/index.js';
 
 	export let folder: Folder;
+	/** If you want to set a custom font for the title of tunes, pass in its name here */
 	export let tuneFont: string | undefined = undefined;
 </script>
 
