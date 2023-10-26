@@ -1,8 +1,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
-import slugifyPkg from 'slugify';
+import slugify from 'slugify';
 import type { Folder, Section, Set } from '$lib/types/index.js';
-const slugify = slugifyPkg.default;
 
 export async function generateFolderFromLatex(
 	folderName: string,
