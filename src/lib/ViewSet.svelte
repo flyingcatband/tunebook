@@ -17,7 +17,7 @@
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
 	onMount(async () => {
-		// @ts-expect-error
+		// @ts-expect-error zingtouch has no typescript definitions
 		const ZingTouch = await import('zingtouch');
 		activeRegion = ZingTouch.Region(tunesContainer);
 		activeRegion.bind(
