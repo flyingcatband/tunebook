@@ -5,14 +5,41 @@
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
 	export let folderName: string = 'Tunebook';
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
 
+	let tunesContainer: Element;
+	let activeRegion;
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
+
+	onMount(async () => {
+		// @ts-expect-error
+		const ZingTouch = await import('zingtouch');
+		activeRegion = ZingTouch.Region(tunesContainer);
+		activeRegion.bind(
+			tunesContainer,
+			'swipe',
+			(e: { detail: { data: { currentDirection: number }[] } }) => {
+				const currentDirection = e.detail.data[0].currentDirection;
+				if (
+					currentDirection > 360 - 22.5 ||
+					currentDirection < 22.5 ||
+					(currentDirection > 90 - 22.5 && currentDirection < 90 + 22.5)
+				) {
+					previousPage();
+				} else if (
+					(currentDirection > 180 - 22.5 && currentDirection < 180 + 22.5) ||
+					(currentDirection > 270 - 22.5 && currentDirection < 270 + 22.5)
+				) {
+					nextPage();
+				}
+			}
+		);
+	});
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = set.content.map((tune) => {
 		const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
@@ -104,6 +131,20 @@
 		autoZooming = false;
 	}
 
+	function previousPage() {
+		if (displayFrom.length > 1) {
+			window.scrollBy(0, -25);
+			displayFrom.pop();
+			displayFrom = displayFrom;
+		}
+	}
+
+	function nextPage() {
+		if (!visible[visible.length - 1]) {
+			displayFrom = [...displayFrom, visible.indexOf(false)];
+		}
+	}
+
 	$: {
 		hideControls;
 		orientation;
@@ -154,7 +195,7 @@
 		</div>
 	</div>
 
-	<div class="tunes" class:two-column={$maxWidth <= 50}>
+	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth <= 50}>
 		{#each tunes as tune, i}
 			{#if i >= displayFrom[displayFrom.length - 1]}
 				<div
@@ -195,22 +236,11 @@
 </div>
 
 {#if displayFrom.length > 1}
-	<button
-		on:click={() => {
-			window.scrollBy(0, -25);
-			displayFrom.pop();
-			displayFrom = displayFrom;
-		}}
-		class="page back"
-		aria-label="Previous page"><div /></button
+	<button on:click={previousPage} class="page back" aria-label="Previous page"><div /></button
 	>{:else}<button disabled class="page back" aria-label="Previous page" />
 {/if}
 {#if !visible[visible.length - 1]}
-	<button
-		on:click={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
-		class="page next"
-		aria-label="Next page"><div /></button
-	>
+	<button on:click={nextPage} class="page next" aria-label="Next page"><div /></button>
 {:else}
 	<button class="page next" disabled aria-label="Next page" />
 {/if}
