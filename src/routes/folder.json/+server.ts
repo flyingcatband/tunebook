@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { generateFolderFromLatex } from '$lib/folderGeneration.js';
+import { generateFolderFromLatex } from '$lib/server/folderGeneration.js';
 
 export const prerender = true;
 

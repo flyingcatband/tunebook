@@ -1,6 +1,6 @@
 {
 	"name": "@flyingcatband/tunebook",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"license": "MIT",
 	"files": [
 		"dist"
@@ -12,6 +12,10 @@
 		},
 		"./types": {
 			"types": "./dist/types/index.d.ts"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"default": "./dist/server/index.js"
 		}
 	},
 	"scripts": {
