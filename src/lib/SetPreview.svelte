@@ -1,14 +1,17 @@
 <script lang="ts">
 	import Incipit from '$lib/Incipit.svelte';
 	import type { Set } from '$lib/types/index.js';
-
+	/** the path to where your sets pages will be */
+	export let basePath = '/';
 	export let set: Set;
+	/** Should the set-level text notes be displayed? */
+	export let showNotes = true;
 	export let tuneFont: string | undefined = undefined;
 </script>
 
 <div class="set-preview">
-	<h2><a href={set.slug}>{set.name}</a></h2>
-	{#if set.notes.length}
+	<h2><a href={basePath + set.slug}>{set.name}</a></h2>
+	{#if showNotes && set.notes.length}
 		{#each set.notes as n}<p>{n}</p>{/each}
 	{/if}
 	{#each set.content as tune}
