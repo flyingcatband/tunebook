@@ -21,7 +21,8 @@
 
 <style lang="postcss">
 	.set-preview {
-		@apply w-80 py-4 px-2;
+		@apply py-4 px-2;
+		width: var(--set-preview-width, 20rem);
 		@apply text-center;
 		@apply box-border;
 	}

@@ -277,7 +277,7 @@
 	}
 
 	.page-container.notes-beside {
-		grid-template-columns: 33svw 1fr;
+		grid-template-columns: var(--notes-width, 33svw) 1fr;
 		grid-template-rows: auto 1fr;
 		grid-template-areas:
 			'controls controls'
