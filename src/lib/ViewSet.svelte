@@ -156,8 +156,7 @@
 					on:click={() => {
 						$notesBeside = !$notesBeside;
 						$refreshVisibility++;
-					}}
-					disabled={$maxWidth >= 95}>Notes {$notesBeside ? 'below' : 'beside'}</button
+					}}>Notes {$notesBeside ? 'below' : 'beside'}</button
 				>
 			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
