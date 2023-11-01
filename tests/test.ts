@@ -81,6 +81,7 @@ test('autozoom zooms tunes sensibly after the second tune is transposed', async 
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
+	page.setViewportSize({ width: 1600, height: 1000 });
 	const secondTune = page.getByText('The Silver Spear', { exact: true });
 	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
 	await page.goto('/Reels-1-Some-reels');

@@ -1,6 +1,6 @@
 # List all the things you can do with this justfile, with descriptions
 help:
-  @just --list
+    @just --list
 
 # Run the project for local development
 dev:

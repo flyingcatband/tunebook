@@ -31,7 +31,7 @@ select {
 
 body {
 	touch-action: pan-y;
-	@apply accent-emerald-800 mt-3;
+	@apply accent-emerald-800;
 }
 
 .set-preview {

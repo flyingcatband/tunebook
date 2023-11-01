@@ -8,6 +8,7 @@
 	export let abc: string;
 	export let fontFamily: string | undefined = undefined;
 	export let staffwidth: number | undefined = undefined;
+	export let tunesContainer: Element | undefined = undefined;
 	export let fontSize = 12;
 	export let titleSize = fontSize + 6;
 	export let visible = null;
@@ -75,7 +76,12 @@
 		if (!boundingRect?.height) {
 			visible = false;
 		} else {
-			visible = boundingRect.bottom <= innerHeight && boundingRect.right <= innerWidth;
+			const containingRect = tunesContainer?.getBoundingClientRect() || {
+				bottom: innerHeight,
+				right: innerWidth
+			};
+			visible =
+				boundingRect.bottom <= containingRect.bottom && boundingRect.right <= containingRect.right;
 		}
 	}
 	$: updateVisible(svg?.getBoundingClientRect(), $refreshVisibility, innerHeight, innerWidth);

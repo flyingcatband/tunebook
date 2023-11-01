@@ -12,6 +12,11 @@
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
 
+	$: slotFilled = $$slots.default;
+	$: notesBeside = BROWSER
+		? keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false)
+		: writable(false);
+
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = set.content.map((tune) => {
@@ -23,6 +28,7 @@
 		};
 	});
 
+	let tunesContainer: Element;
 	let visualTranspose = 0;
 	let hideControls = true;
 	$: autozoomEnabled = BROWSER
@@ -117,8 +123,8 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<div class="page-container">
-	<div>
+<div class="page-container" class:notes-beside={$notesBeside && slotFilled}>
+	<div class="controls-container">
 		<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
 			>{hideControls ? 'Show' : 'Hide'} controls</button
 		>
@@ -145,6 +151,15 @@
 					}}>Fit to page</button
 				>
 			{/if}
+			{#if slotFilled}
+				<button
+					on:click={() => {
+						$notesBeside = !$notesBeside;
+						$refreshVisibility++;
+					}}
+					disabled={$maxWidth >= 95}>Notes {$notesBeside ? 'below' : 'beside'}</button
+				>
+			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
 			<div class="notes">
 				{#each set?.notes || [] as note}
@@ -154,7 +169,7 @@
 		</div>
 	</div>
 
-	<div class="tunes" class:two-column={$maxWidth <= 50}>
+	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth <= 50}>
 		{#each tunes as tune, i}
 			{#if i >= displayFrom[displayFrom.length - 1]}
 				<div
@@ -187,11 +202,14 @@
 						bind:visible={visible[i]}
 						{refreshVisibility}
 						{fontFamily}
+						{tunesContainer}
 					/>
 				</div>
 			{/if}
 		{/each}
 	</div>
+
+	<div class="notes-container"><slot /></div>
 </div>
 
 {#if displayFrom.length > 1}
@@ -231,10 +249,39 @@
 
 	.page-container {
 		display: grid;
-		grid-template-rows: auto 1fr;
-		grid-column: 1fr;
-		max-height: 100svh;
+		height: 100svh;
+		width: 100svw;
+		@apply pt-3;
 		box-sizing: border-box;
+	}
+
+	.tunes {
+		grid-area: tunes;
+		width: 100%;
+	}
+
+	.notes-container {
+		grid-area: notes;
+	}
+	.controls-container {
+		grid-area: controls;
+	}
+
+	.page-container:not(.notes-beside) {
+		grid-template-rows: auto 1fr auto;
+		grid-column: 1fr;
+		grid-template-areas:
+			'controls'
+			'tunes'
+			'notes';
+	}
+
+	.page-container.notes-beside {
+		grid-template-columns: 33svw 1fr;
+		grid-template-rows: auto 1fr;
+		grid-template-areas:
+			'controls controls'
+			'notes tunes';
 	}
 
 	/* TUNE CONTAINERS */
