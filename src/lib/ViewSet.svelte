@@ -203,6 +203,7 @@
 						{refreshVisibility}
 						{fontFamily}
 						{tunesContainer}
+						on:rerendered-abc={fitToPage}
 					/>
 				</div>
 			{/if}
@@ -257,7 +258,6 @@
 
 	.tunes {
 		grid-area: tunes;
-		width: 100%;
 	}
 
 	.notes-container {
@@ -266,10 +266,13 @@
 	.controls-container {
 		grid-area: controls;
 	}
+	.controls-container button {
+		@apply relative z-10;
+	}
 
 	.page-container:not(.notes-beside) {
 		grid-template-rows: auto 1fr auto;
-		grid-column: 1fr;
+		grid-template-columns: 1fr;
 		grid-template-areas:
 			'controls'
 			'tunes'

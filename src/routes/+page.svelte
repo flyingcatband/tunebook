@@ -27,11 +27,20 @@
 	the set at each device orientation.
 </p>
 
+<p>
+	The set previews shown above can have their width configured by setting the CSS custom property <code
+		>--set-preview-width</code
+	>.
+</p>
+
 <style lang="postcss">
 	.filterable-sets-grid {
 		@apply mx-auto;
 	}
 	p {
 		@apply max-w-prose mx-auto text-lg my-4;
+	}
+	h1 {
+		@apply mt-3;
 	}
 </style>
