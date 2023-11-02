@@ -16,7 +16,6 @@
 	export let showTransposition = true;
 	let dots: HTMLDivElement;
 	export let refreshVisibility = writable(0);
-	export let updateVisible = true;
 
 	const dispatch = createEventDispatcher();
 
@@ -78,7 +77,6 @@
 		innerHeight: number,
 		innerWidth: number
 	) {
-		if (!updateVisible) return;
 		if (!boundingRect?.height) {
 			visible = false;
 		} else {

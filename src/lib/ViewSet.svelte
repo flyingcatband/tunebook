@@ -79,7 +79,7 @@
 			$refreshVisibility++;
 			return;
 		}
-		if (!hideControls) return;
+		// if (!hideControls) return;
 		autoZooming = true;
 
 		// Show the first page
@@ -208,7 +208,6 @@
 						abc={tune.abc}
 						{visualTranspose}
 						tuneOffset={tune.offset}
-						updateVisible={hideControls}
 						bind:visible={visible[i]}
 						{refreshVisibility}
 						{fontFamily}
