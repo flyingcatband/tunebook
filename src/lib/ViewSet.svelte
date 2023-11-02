@@ -79,6 +79,7 @@
 			$refreshVisibility++;
 			return;
 		}
+		if (!hideControls) return;
 		autoZooming = true;
 
 		// Show the first page
@@ -94,8 +95,14 @@
 		}
 
 		// Zoom all the way in so we can no longer see all the tunes
-		$maxWidth = 95;
-		await tick();
+		while (
+			visible.every((vis) => vis) &&
+			div.getBoundingClientRect().bottom < innerHeight &&
+			$maxWidth < 95
+		) {
+			$maxWidth += 10;
+			await tick();
+		}
 
 		// Zoom out until we can see all the tunes, and the entirety of the first tune
 		// (First tune will always show, no matter whether it fits fully on the page,
@@ -104,10 +111,13 @@
 			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
 			$maxWidth > 20
 		) {
-			$maxWidth -= 1;
+			$maxWidth -= 5;
 			await tick();
 		}
+
 		autoZooming = false;
+		maxWidth.volatile = false;
+		$maxWidth = $maxWidth;
 	}
 
 	$: {
@@ -198,6 +208,7 @@
 						abc={tune.abc}
 						{visualTranspose}
 						tuneOffset={tune.offset}
+						updateVisible={hideControls}
 						bind:visible={visible[i]}
 						{refreshVisibility}
 						{fontFamily}

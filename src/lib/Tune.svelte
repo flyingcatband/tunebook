@@ -16,6 +16,7 @@
 	export let showTransposition = true;
 	let dots: HTMLDivElement;
 	export let refreshVisibility = writable(0);
+	export let updateVisible = true;
 
 	const dispatch = createEventDispatcher();
 
@@ -71,12 +72,13 @@
 	let innerHeight = 0;
 	let innerWidth = 0;
 
-	function updateVisible(
+	function _updateVisible(
 		boundingRect: DOMRect | undefined,
 		_: number,
 		innerHeight: number,
 		innerWidth: number
 	) {
+		if (!updateVisible) return;
 		if (!boundingRect?.height) {
 			visible = false;
 		} else {
@@ -88,7 +90,7 @@
 				boundingRect.bottom <= containingRect.bottom && boundingRect.right <= containingRect.right;
 		}
 	}
-	$: updateVisible(svg?.getBoundingClientRect(), $refreshVisibility, innerHeight, innerWidth);
+	$: _updateVisible(svg?.getBoundingClientRect(), $refreshVisibility, innerHeight, innerWidth);
 </script>
 
 <svelte:window bind:innerHeight bind:innerWidth />
