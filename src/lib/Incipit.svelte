@@ -11,13 +11,12 @@
 	}
 
 	function calculateIncipitAbc(abc: string): string {
-		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '\n');
+		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '');
 		const tuneStartIndex = trimmedAbc.matchAll(/\n(?:[^A-Z]|[A-Z][^:])/g).next()?.value?.index + 1;
 		const preservedFields: string[] = trimmedAbc
 			.slice(0, tuneStartIndex)
 			.split('\n')
 			.filter((t) => t.match(/^[XTKML]/));
-
 		return preservedFields.join('\n') + '\n' + firstTwoBars(trimmedAbc.slice(tuneStartIndex));
 	}
 </script>
