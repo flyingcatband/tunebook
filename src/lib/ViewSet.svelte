@@ -79,7 +79,6 @@
 			$refreshVisibility++;
 			return;
 		}
-		// if (!hideControls) return;
 		autoZooming = true;
 
 		// Show the first page
@@ -116,7 +115,6 @@
 		}
 
 		autoZooming = false;
-		maxWidth.volatile = false;
 		$maxWidth = $maxWidth;
 	}
 
