@@ -10,6 +10,11 @@
 		folder.content.forEach((f) => (f.visible = true));
 		folder.content = folder.content;
 	}
+	function unsetFilters() {
+		if (!folder) return;
+		folder.content.forEach((f) => (f.visible = false));
+		folder.content = folder.content;
+	}
 </script>
 
 <h2>Filter sets</h2>
@@ -17,14 +22,23 @@
 	{#each folder.content as section}
 		<li><label><input bind:checked={section.visible} type="checkbox" />{section.name}</label></li>
 	{/each}
-	<li><button on:click={resetFilters}>Any type of tune</button></li>
 </ul>
+<div class="buttons">
+	<button on:click={unsetFilters}>None of the tune types</button><button on:click={resetFilters}
+		>Any type of tune</button
+	>
+</div>
 
 <slot {visibleSections} />
 
 <style lang="postcss">
 	ul {
-		@apply p-2 w-fit mx-auto block;
+		@apply p-2 mx-auto;
+		display: grid;
+		@apply grid-cols-2 sm:grid-cols-3 md:grid-cols-4 grid-flow-row w-fit gap-x-6;
+	}
+	.buttons {
+		@apply flex gap-2 flex-wrap mx-auto max-w-[90vw] justify-center;
 	}
 	input[type='checkbox'] {
 		@apply mr-1;
