@@ -9,15 +9,19 @@
 	export let tuneFont: string | undefined = undefined;
 </script>
 
-<div class="set-preview">
-	<h2><a href={basePath + set.slug}>{set.name}</a></h2>
-	{#if showNotes && set.notes.length}
-		{#each set.notes as n}<p>{n}</p>{/each}
-	{/if}
-	{#each set.content as tune}
-		<Incipit abc={tune.abc} fontFamily={tuneFont} />
-	{/each}
-</div>
+<a href={basePath + set.slug}>
+	<div class="set-preview">
+		{#if set.name != undefined}
+			<h2>{set.name}</h2>
+		{/if}
+		{#if showNotes && set.notes.length}
+			{#each set.notes as n}<p>{n}</p>{/each}
+		{/if}
+		{#each set.content as tune}
+			<Incipit abc={tune.abc} fontFamily={tuneFont} />
+		{/each}
+	</div>
+</a>
 
 <style lang="postcss">
 	.set-preview {

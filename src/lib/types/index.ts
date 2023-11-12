@@ -9,7 +9,7 @@ export type Section = {
 };
 
 export type Set = {
-	name: string;
+	name?: string;
 	slug: string;
 	notes: string[];
 	content: Tune[];
