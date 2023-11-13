@@ -12,7 +12,7 @@
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
 
-	const ROOTS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
 	$: slotFilled = $$slots.default;
 	$: notesBeside = keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false);
@@ -372,6 +372,6 @@
 		margin-bottom: 1em;
 	}
 	.key-reminder {
-		@apply absolute sm:right-5 top-5 right-1 italic;
+		@apply absolute sm:right-5 top-5 right-1;
 	}
 </style>

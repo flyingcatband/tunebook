@@ -6,7 +6,7 @@
 	export let transposition: Readable<number>;
 	export let tuneSlug: string;
 
-	const ROOTS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
 	type WrittenKey = `${KeyRoot}${KeyAccidentalName}`;
 
