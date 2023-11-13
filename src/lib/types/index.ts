@@ -13,6 +13,7 @@ export type Set = {
 	slug: string;
 	notes: string[];
 	content: Tune[];
+	tags: string[];
 };
 
 export type Tune = {
