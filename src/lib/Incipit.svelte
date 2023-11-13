@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
 	import Tune from './Tune.svelte';
+	import { keyedLocalStorage } from './keyedLocalStorage';
 
 	export let abc: string;
 	export let fontFamily: string | undefined = undefined;
+
+	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
 
 	function firstTwoBars(abcTuneSection: string): string {
 		const [firstChar, rest] = [abcTuneSection[0], abcTuneSection.slice(1)];
@@ -29,4 +32,5 @@
 	titleSize={12}
 	tuneOffset={writable(0)}
 	showTransposition={false}
+	visualTranspose={$visualTranspose}
 />

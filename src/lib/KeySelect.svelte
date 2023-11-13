@@ -44,7 +44,7 @@
 		} else if (transposition < 0) {
 			return `(${transposition})`;
 		} else {
-			return ``;
+			return `(concert)`;
 		}
 	}
 
