@@ -29,6 +29,7 @@ export async function generateFolderFromLatex(
 		}
 		if (subsectionName) {
 			currentSet = {
+				name: replaceTexEscapes(subsectionName),
 				content: [],
 				notes: [],
 				slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true })
