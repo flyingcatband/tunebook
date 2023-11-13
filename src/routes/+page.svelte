@@ -1,7 +1,10 @@
 <script lang="ts">
 	import FilterableSetsGrid from '$lib/FilterableSetsGrid.svelte';
+	import { keyedLocalStorage } from '$lib/keyedLocalStorage.js';
 
 	export let data;
+
+	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
 </script>
 
 <svelte:head>
@@ -14,6 +17,13 @@
 	each tune starts on this page, and see notes about the sets if you've added them. You can filter
 	by type of tune, or however you like to break up your folder into sections. Clicking the title of
 	a set will show you all the dots for that set.
+</p>
+
+<h2>Global transposition options</h2>
+<p class="mx-auto w-fit flex flex-wrap gap-2">
+	<button on:click={() => ($visualTranspose = 2)}>Make the folder Bb</button>
+	<button on:click={() => ($visualTranspose = 0)}>Make the folder C</button>
+	<button on:click={() => ($visualTranspose = -3)}>Make the folder Eb</button>
 </p>
 
 <div class="filterable-sets-grid">
@@ -42,5 +52,8 @@
 	}
 	h1 {
 		@apply mt-3;
+	}
+	h2 {
+		@apply text-center;
 	}
 </style>

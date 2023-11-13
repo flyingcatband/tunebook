@@ -12,10 +12,10 @@
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
 
+	const ROOTS = ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+
 	$: slotFilled = $$slots.default;
-	$: notesBeside = BROWSER
-		? keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false)
-		: writable(false);
+	$: notesBeside = keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false);
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
@@ -24,22 +24,18 @@
 		return {
 			...tune,
 			originalKey: abcDetails?.getKeySignature(),
-			offset: BROWSER ? keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0) : writable(0)
+			offset: keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0)
 		};
 	});
 
 	let tunesContainer: Element;
-	let visualTranspose = 0;
+	let visualTranspose = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = true;
-	$: autozoomEnabled = BROWSER
-		? keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true)
-		: writable(true);
+	$: autozoomEnabled = keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true);
 
 	let innerHeight: number, innerWidth: number;
 	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
-	$: maxWidth = BROWSER
-		? keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95)
-		: writable(95);
+	$: maxWidth = keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95);
 	$: updateWidth(maxWidth);
 
 	function updateWidth(maxWidth: Writable<number>) {
@@ -133,6 +129,9 @@
 
 <div class="page-container" class:notes-beside={$notesBeside && slotFilled}>
 	<div class="controls-container">
+		<span class="key-reminder"
+			>Folder key: {ROOTS[(ROOTS.length + 3 - $visualTranspose) % ROOTS.length]}</span
+		>
 		<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
 			>{hideControls ? 'Show' : 'Hide'} controls</button
 		>
@@ -204,7 +203,7 @@
 					>
 					<Tune
 						abc={tune.abc}
-						{visualTranspose}
+						visualTranspose={$visualTranspose}
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}
 						{refreshVisibility}
@@ -371,5 +370,8 @@
 	}
 	p:last-of-type {
 		margin-bottom: 1em;
+	}
+	.key-reminder {
+		@apply absolute sm:right-5 top-5 right-1 italic;
 	}
 </style>
