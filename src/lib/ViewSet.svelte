@@ -11,6 +11,23 @@
 	export let folderName: string = 'Tunebook';
 	export let set: Set;
 	export let fontFamily: string | undefined = undefined;
+	export let displayAbcFields: string = 'TNC';
+
+	if (!displayAbcFields.match(/^[A-Z]*$/)) {
+		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
+	}
+
+	$: preservedFieldRegex = new RegExp(`^[XKML${displayAbcFields}]`);
+
+	function stripUnwantedHeaders(abc: string): string {
+		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '');
+		const tuneStartIndex = trimmedAbc.matchAll(/\n(?:[^A-Z]|[A-Z][^:])/g).next()?.value?.index + 1;
+		const preservedFields: string[] = trimmedAbc
+			.slice(0, tuneStartIndex)
+			.split('\n')
+			.filter((t) => t.match(preservedFieldRegex));
+		return preservedFields.join('\n') + '\n' + trimmedAbc.slice(tuneStartIndex);
+	}
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
@@ -202,7 +219,7 @@
 						on:click={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
 					>
 					<Tune
-						abc={tune.abc}
+						abc={stripUnwantedHeaders(tune.abc)}
 						visualTranspose={$visualTranspose}
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}

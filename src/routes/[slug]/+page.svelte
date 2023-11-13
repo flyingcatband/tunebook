@@ -5,7 +5,7 @@
 </script>
 
 <button class="z-20 fixed left-3 top-3" on:click={() => history.back()}>Back</button>
-<ViewSet {set} folderName={data.folder.name} fontFamily="sans-serif">
+<ViewSet {set} folderName={data.folder.name} fontFamily="sans-serif" displayAbcFields="TNCRO">
 	<h2>Extra notes</h2>
 	{#if set.notes}
 		<p style="font-style:italic">{set.notes}</p>

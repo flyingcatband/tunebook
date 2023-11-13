@@ -5,6 +5,13 @@
 
 	export let abc: string;
 	export let fontFamily: string | undefined = undefined;
+	export let displayAbcFields: string = 'T';
+
+	if (!displayAbcFields.match(/^[A-Z]*$/)) {
+		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
+	}
+
+	$: preservedFieldRegex = new RegExp(`^[XKML${displayAbcFields}]`);
 
 	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
 
@@ -19,7 +26,7 @@
 		const preservedFields: string[] = trimmedAbc
 			.slice(0, tuneStartIndex)
 			.split('\n')
-			.filter((t) => t.match(/^[XTKML]/));
+			.filter((t) => t.match(preservedFieldRegex));
 		return preservedFields.join('\n') + '\n' + firstTwoBars(trimmedAbc.slice(tuneStartIndex));
 	}
 </script>
@@ -27,7 +34,7 @@
 <Tune
 	abc={calculateIncipitAbc(abc)}
 	{fontFamily}
-	staffwidth={250}
+	staffwidth={325}
 	fontSize={8}
 	titleSize={12}
 	tuneOffset={writable(0)}
