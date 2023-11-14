@@ -42,7 +42,12 @@
 						historyfont: `${fontFamily} ${fontSize}`,
 						partsfont: `${fontFamily} ${fontSize}`,
 						tempofont: `${fontFamily} ${fontSize}`,
-						infofont: `${fontFamily} ${fontSize}`
+						infofont: `${fontFamily} ${fontSize}`,
+						gchordfont: `${fontFamily} ${fontSize}`,
+						annotationfont: `${fontFamily} ${fontSize}`,
+						textfont: `${fontFamily} ${fontSize}`,
+						vocalfont: `${fontFamily} ${fontSize}`,
+						wordsfont: `${fontFamily} ${fontSize}`
 				  }
 				: {},
 			visualTranspose: visualTranspose + $tuneOffset,
