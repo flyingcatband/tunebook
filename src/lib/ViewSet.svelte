@@ -244,17 +244,19 @@
 			displayFrom = displayFrom;
 		}}
 		class="page back"
-		aria-label="Previous page"><div /></button
-	>{:else}<button disabled class="page back" aria-label="Previous page" />
+		aria-label="Previous page"
+	>
+		<div />
+	</button>
 {/if}
 {#if !visible[visible.length - 1]}
 	<button
 		on:click={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
 		class="page next"
-		aria-label="Next page"><div /></button
+		aria-label="Next page"
 	>
-{:else}
-	<button class="page next" disabled aria-label="Next page" />
+		<div />
+	</button>
 {/if}
 
 <style lang="postcss">
