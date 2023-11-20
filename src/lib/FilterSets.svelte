@@ -2,6 +2,7 @@
 	import type { Section } from '$lib/types/index.js';
 
 	export let folder: { name: string; content: (Section & { visible?: boolean })[] };
+	export let filtersTitle = 'Filter sets';
 	resetFilters();
 	let visibleSections = folder.content;
 	$: visibleSections = folder.content.filter((f) => f.visible);
@@ -17,7 +18,7 @@
 	}
 </script>
 
-<h2>Filter sets</h2>
+<h2>{filtersTitle}</h2>
 <ul>
 	{#each folder.content as section}
 		<li><label><input bind:checked={section.visible} type="checkbox" />{section.name}</label></li>
