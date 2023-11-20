@@ -7,6 +7,7 @@
 	/** Should the set-level text notes be displayed? */
 	export let showNotes = true;
 	export let tuneFont: string | undefined = undefined;
+	export let displayAbcFields: string | undefined = undefined;
 </script>
 
 <a href={basePath + set.slug}>
@@ -18,7 +19,7 @@
 			{#each set.notes as n}<p>{n}</p>{/each}
 		{/if}
 		{#each set.content as tune}
-			<Incipit abc={tune.abc} fontFamily={tuneFont} />
+			<Incipit abc={tune.abc} fontFamily={tuneFont} {displayAbcFields} />
 		{/each}
 	</div>
 </a>
