@@ -32,7 +32,8 @@ export async function generateFolderFromLatex(
 				name: replaceTexEscapes(subsectionName),
 				content: [],
 				notes: [],
-				slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true })
+				slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true }),
+				tags: []
 			};
 			lastSeen = 'set';
 			assertExists(currentSection, 'currentSection').content.push(currentSet);
@@ -40,11 +41,13 @@ export async function generateFolderFromLatex(
 		if (abcFilename) {
 			const abc = (await readFile(`${rootDirectory}/${abcFilename}.abc`)).toString();
 			lastSeen = 'tune';
-			assertExists(currentSet, 'currentSet').content.push({
+			const set = assertExists(currentSet, 'currentSet');
+			set.content.push({
 				abc,
 				filename: abcFilename,
 				slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true })
 			});
+			addTagsFrom(abc, set.tags);
 		}
 
 		if (!line.trim().startsWith('\\') && lastSeen == 'set') {
@@ -55,16 +58,44 @@ export async function generateFolderFromLatex(
 	return folder;
 }
 
+function addTagsFrom(abc: string, tags: string[]) {
+	for (const tag of extractTags(abc)) {
+		if (!tags.includes(tag)) {
+			tags.push(tag);
+		}
+	}
+}
+
+function extractTags(abc: string): string[] {
+	const results = [];
+	for (const match of abc.matchAll(/^G: *([\w, -]+) *$/gm)) {
+		results.push(
+			...match[1]
+				.split(',')
+				.filter((tag) => tag)
+				.map((tag) => tag.trim())
+		);
+	}
+	return results;
+}
+
 export async function generateFolderFromMultiSetAbcFile(
 	folderName: string,
 	abcPath: string
+): Promise<Folder> {
+	const abc = (await readFile(abcPath)).toString();
+	return generateFolderFromMultiSetAbcString(folderName, abc);
+}
+
+async function generateFolderFromMultiSetAbcString(
+	folderName: string,
+	abc: string
 ): Promise<Folder> {
 	const folder: Folder = {
 		name: folderName,
 		content: []
 	};
 
-	const abc = (await readFile(abcPath)).toString();
 	let sharedHeaders: string[] = [];
 	let currentAbc = '';
 	let setTitle: string | undefined = undefined;
@@ -80,8 +111,9 @@ export async function generateFolderFromMultiSetAbcFile(
 				abc: ''
 			});
 		}
-		currentSet.content[currentSet?.content.length - 1].abc =
-			`X:1` + sharedHeaders.join('\n') + `\n` + currentAbc;
+		const abc = `X:1\n` + sharedHeaders.join('\n') + `\n` + currentAbc;
+		currentSet.content[currentSet?.content.length - 1].abc = abc;
+		addTagsFrom(abc, currentSet.tags);
 	};
 
 	for (const line of abc.split('\n')) {
@@ -115,7 +147,8 @@ export async function generateFolderFromMultiSetAbcFile(
 				name: abcTitle,
 				slug: slugify(abcTitle, { strict: true }),
 				notes: [],
-				content: []
+				content: [],
+				tags: []
 			});
 			currentSet = currentSection.content[currentSection.content.length - 1];
 			currentAbc = '';
@@ -138,7 +171,7 @@ export async function generateFolderFromMultiSetAbcFile(
 		}
 
 		if (currentSet?.content.length == 0) {
-			if (line.match(/[LMR]:.*/)) {
+			if (line.match(/[LMRG]:.*/)) {
 				sharedHeaders.push(line);
 			}
 		} else if (!line.match(/P: *[A-Z]/) && line.trim()) {
@@ -163,4 +196,81 @@ function assertExists<T>(value: T | undefined, name: string): T {
 	} else {
 		return value;
 	}
+}
+
+if (import.meta.vitest) {
+	const { describe, it, expect } = import.meta.vitest;
+
+	describe('extractTags', () => {
+		const sut = extractTags;
+		it('returns no tags when no G fields are present', () => {
+			const abc = `X:1\nT:A set\n%...`;
+			expect(sut(abc)).toEqual([]);
+		});
+
+		it('pulls out single tag', () => {
+			const abc = `X:1\nG: test\nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['test']);
+		});
+
+		it('pulls out comma-separated tag', () => {
+			const abc = `X:1\nG: test,test2\nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['test', 'test2']);
+		});
+
+		it('trims comma-separated tags', () => {
+			const abc = `X:1\nG:   test   ,  test2   \nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['test', 'test2']);
+		});
+
+		it('pulls out tags in multiple G fields', () => {
+			const abc = `X:1\nG: test\nG: test2\nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['test', 'test2']);
+		});
+
+		it('pulls out tag with no leading space', () => {
+			const abc = `X:1\nG:test\nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['test']);
+		});
+
+		it('ignores tune lines', () => {
+			const abc = `X:1\nT:A set\nABcd|ef\nG:|`;
+			expect(sut(abc)).toEqual([]);
+		});
+	});
+
+	describe('addTagsFrom', () => {
+		const sut = (abc: string, tags: string[]): string[] => {
+			addTagsFrom(abc, tags);
+			return tags;
+		};
+
+		it('adds all tags if none are currently set', () => {
+			expect(sut(`X:1\nG:tag1,tag2\nT:A tune`, [])).toEqual(['tag1', 'tag2']);
+		});
+
+		it('does not add tags if they are already set', () => {
+			expect(sut(`X:1\nG:tag\nT:A tune`, ['tag'])).toEqual(['tag']);
+		});
+	});
+
+	describe('generateFolderFromMultiSetAbcString', () => {
+		const sut = generateFolderFromMultiSetAbcString;
+
+		it('extracts tags from set-level headers', async () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2`;
+
+			const folder = await sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].tags).toEqual(['Show set']);
+		});
+
+		it('extracts tags from tune-level headers', async () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nP:A\nT:A tune\nG:English\n% ...\nabcdef\nX:2`;
+
+			const folder = await sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].tags).toEqual(['English']);
+		});
+	});
 }

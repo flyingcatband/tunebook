@@ -15,6 +15,13 @@
 		{#if set.name != undefined}
 			<h2>{set.name}</h2>
 		{/if}
+		{#if set.tags.length}
+			<ul class="tag-list">
+				{#each set.tags as tag}
+					<li class="tag">{tag}</li>
+				{/each}
+			</ul>
+		{/if}
 		{#if showNotes && set.notes.length}
 			{#each set.notes as n}<p>{n}</p>{/each}
 		{/if}
@@ -30,5 +37,11 @@
 		width: var(--set-preview-width, 20rem);
 		@apply text-center;
 		@apply box-border;
+	}
+	.tag-list {
+		@apply flex gap-x-2 gap-y-1 justify-center;
+	}
+	.tag {
+		@apply w-fit;
 	}
 </style>
