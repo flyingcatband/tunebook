@@ -59,7 +59,6 @@ export async function generateFolderFromLatex(
 }
 
 function addTagsFrom(abc: string, tags: string[]) {
-	console.log(`adding tags from ${abc}`);
 	for (const tag of extractTags(abc)) {
 		if (!tags.includes(tag)) {
 			tags.push(tag);
