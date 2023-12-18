@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { BROWSER } from 'esm-env';
-	import { renderAbc } from 'abcjs';
+	import pkg from 'abcjs';
+	const { renderAbc } = pkg;
 	import { writable, type Writable } from 'svelte/store';
 	import { tick } from 'svelte';
 	import { createEventDispatcher } from 'svelte';

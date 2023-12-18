@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { BROWSER } from 'esm-env';
-	import { renderAbc, type KeySignature } from 'abcjs';
+	import pkg, { type KeySignature } from 'abcjs';
 	import KeySelect from '$lib/KeySelect.svelte';
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
 	import { tick } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
+
+	const { renderAbc } = pkg;
 
 	export let folderName: string = 'Tunebook';
 	export let set: Set;
