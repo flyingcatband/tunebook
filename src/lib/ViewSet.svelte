@@ -184,11 +184,6 @@
 				>
 			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
-			<div class="notes">
-				{#each set?.notes || [] as note}
-					<p>{note}</p>
-				{/each}
-			</div>
 		</div>
 	</div>
 
