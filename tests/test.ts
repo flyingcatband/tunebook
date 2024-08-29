@@ -5,6 +5,12 @@ test('index page has expected h1', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Demo folder', exact: true })).toBeVisible();
 });
 
+test('index page does not show commented-out latex notes', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByText('Yes, we like our punny set names')).toBeVisible();
+	await expect(page.getByText("nope this shouldn't show up")).not.toBeVisible();
+});
+
 test('index page can be filtered', async ({ page }) => {
 	await page.goto('/');
 	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
