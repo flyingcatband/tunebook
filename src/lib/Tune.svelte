@@ -30,7 +30,7 @@
 			? amendedAbc.replace(
 					/\n(T:[^\n]*)\n/,
 					(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
-			  )
+				)
 			: amendedAbc;
 
 	$: if (dots && BROWSER) {
@@ -49,7 +49,7 @@
 						textfont: `${fontFamily} ${fontSize}`,
 						vocalfont: `${fontFamily} ${fontSize}`,
 						wordsfont: `${fontFamily} ${fontSize}`
-				  }
+					}
 				: {},
 			visualTranspose: visualTranspose + $tuneOffset,
 			selectTypes: false,
