@@ -147,7 +147,7 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<div class="page-container" class:notes-beside={$notesBeside && slotFilled}>
+<div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
 	<div class="controls-container">
 		<span class="key-reminder"
 			>Folder key: {ROOTS[(ROOTS.length + 3 - $visualTranspose) % ROOTS.length]}</span
