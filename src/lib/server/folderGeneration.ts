@@ -19,7 +19,7 @@ export async function generateFolderFromLatex(
 	let lastSeen: null | 'section' | 'set' | 'tune' = null;
 
 	for (const line of tex.toString().split('\n')) {
-		if (!line.startsWith('%')) {
+		if (!line.trim().startsWith('%')) {
 			const sectionName = line.match(/\\section\{(.*)\}/)?.[1];
 			const subsectionName = line.match(/\\subsection\{(.*)\}/)?.[1];
 			const abcFilename = line.match(/\\abcinput\{(.*)\}/)?.[1];
