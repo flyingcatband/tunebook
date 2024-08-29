@@ -19,39 +19,40 @@ export async function generateFolderFromLatex(
 	let lastSeen: null | 'section' | 'set' | 'tune' = null;
 
 	for (const line of tex.toString().split('\n')) {
-		const sectionName = line.match(/\\section\{(.*)\}/)?.[1];
-		const subsectionName = line.match(/\\subsection\{(.*)\}/)?.[1];
-		const abcFilename = line.match(/\\abcinput\{(.*)\}/)?.[1];
-		if (sectionName) {
-			currentSection = { name: replaceTexEscapes(sectionName), content: [] };
-			lastSeen = 'section';
-			folder.content.push(currentSection);
-		}
-		if (subsectionName) {
-			currentSet = {
-				name: replaceTexEscapes(subsectionName),
-				content: [],
-				notes: [],
-				slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true }),
-				tags: []
-			};
-			lastSeen = 'set';
-			assertExists(currentSection, 'currentSection').content.push(currentSet);
-		}
-		if (abcFilename) {
-			const abc = (await readFile(`${rootDirectory}/${abcFilename}.abc`)).toString();
-			lastSeen = 'tune';
-			const set = assertExists(currentSet, 'currentSet');
-			set.content.push({
-				abc,
-				filename: abcFilename,
-				slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true })
-			});
-			addTagsFrom(abc, set.tags);
-		}
-
-		if (!line.trim().startsWith('\\') && lastSeen == 'set') {
-			assertExists(currentSet, 'currentSet').notes.push(line.replace('\\\\', ''));
+		if (!line.startsWith('%')) {
+			const sectionName = line.match(/\\section\{(.*)\}/)?.[1];
+			const subsectionName = line.match(/\\subsection\{(.*)\}/)?.[1];
+			const abcFilename = line.match(/\\abcinput\{(.*)\}/)?.[1];
+			if (sectionName) {
+				currentSection = { name: replaceTexEscapes(sectionName), content: [] };
+				lastSeen = 'section';
+				folder.content.push(currentSection);
+			}
+			if (subsectionName) {
+				currentSet = {
+					name: replaceTexEscapes(subsectionName),
+					content: [],
+					notes: [],
+					slug: slugify(subsectionName.replaceAll('/', ' '), { strict: true }),
+					tags: []
+				};
+				lastSeen = 'set';
+				assertExists(currentSection, 'currentSection').content.push(currentSet);
+			}
+			if (abcFilename) {
+				const abc = (await readFile(`${rootDirectory}/${abcFilename}.abc`)).toString();
+				lastSeen = 'tune';
+				const set = assertExists(currentSet, 'currentSet');
+				set.content.push({
+					abc,
+					filename: abcFilename,
+					slug: slugify(abcFilename.replaceAll('/', ' '), { strict: true })
+				});
+				addTagsFrom(abc, set.tags);
+			}
+			if (!line.trim().startsWith('\\') && lastSeen == 'set') {
+				assertExists(currentSet, 'currentSet').notes.push(line.replace('\\\\', ''));
+			}
 		}
 	}
 
