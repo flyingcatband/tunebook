@@ -35,6 +35,7 @@
 
 	$: slotFilled = $$slots.default;
 	$: notesBeside = keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false);
+	$: notesHidden = keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false);
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
@@ -184,6 +185,12 @@
 						$refreshVisibility++;
 					}}>Notes {$notesBeside ? 'below' : 'beside'}</button
 				>
+				<button
+					on:click={() => {
+						$notesHidden = !$notesHidden;
+						$refreshVisibility++;
+					}}>{$notesHidden ? 'Show' : 'Hide'} notes</button
+				>
 			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
 		</div>
@@ -230,7 +237,9 @@
 		{/each}
 	</div>
 
-	<div class="notes-container"><slot /></div>
+	{#if !$notesHidden}
+		<div class="notes-container"><slot /></div>
+	{/if}
 </div>
 
 {#if displayFrom.length > 1}
