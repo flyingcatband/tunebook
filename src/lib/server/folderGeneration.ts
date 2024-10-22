@@ -99,6 +99,7 @@ async function generateFolderFromMultiSetAbcString(
 
 	let sharedHeaders: string[] = [];
 	let currentAbc = '';
+	let globalKey = '';
 	let setTitle: string | undefined = undefined;
 	let currentSection: Section | undefined;
 	let currentSet: Set | undefined = undefined;
@@ -112,7 +113,7 @@ async function generateFolderFromMultiSetAbcString(
 				abc: ''
 			});
 		}
-		const abc = `X:1\n` + sharedHeaders.join('\n') + `\n` + currentAbc;
+		const abc = `X:1\n` + sharedHeaders.join('\n') + `\n` + globalKey + currentAbc;
 		currentSet.content[currentSet?.content.length - 1].abc = abc;
 		addTagsFrom(abc, currentSet.tags);
 	};
@@ -175,9 +176,15 @@ async function generateFolderFromMultiSetAbcString(
 			if (line.match(/[LMRG]:.*/)) {
 				sharedHeaders.push(line);
 			}
+			if (line.match(/K:.*/)) {
+				globalKey = `${line}\n`;
+			}
 		} else if (!line.match(/P: *[A-Z]/) && line.trim()) {
 			currentAbc += line;
 			currentAbc += '\n';
+			if (line.match(/K:.*/)) {
+				globalKey = '';
+			}
 		}
 	}
 
@@ -264,6 +271,30 @@ if (import.meta.vitest) {
 			const folder = await sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].tags).toEqual(['Show set']);
+		});
+
+		it('applies global key to first tune', async () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nK:G\nP:A\nT:A tune\n% ...\nabcdef\nX:2`;
+
+			const folder = await sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[0].abc).toContain('K:G');
+		});
+
+		it('applies tune-specific key to first tune', async () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nP:A\nT:A tune\nK:G\n% ...\nabcdef\nX:2`;
+
+			const folder = await sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[0].abc).toContain('K:G');
+		});
+
+		it('does not override tune specific key with global key', async () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nK:G\nP:A\nT:A tune\nK:A\n% ...\nabcdef\nX:2`;
+
+			const folder = await sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[0].abc).not.toContain('K:G');
 		});
 
 		it('extracts tags from tune-level headers', async () => {
