@@ -8,7 +8,7 @@
 		children?: import('svelte').Snippet<[any]>;
 	}
 
-	let { folder = $bindable(), filtersTitle = 'Filter sets', children }: Props = $props();
+	let { folder, filtersTitle = 'Filter sets', children }: Props = $props();
 	let visible = keyedLocalStorage(
 		`visibleSets-${folder.name}`,
 		Object.fromEntries(folder.content.map((f) => [f.name, true]))
