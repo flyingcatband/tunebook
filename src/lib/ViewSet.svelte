@@ -5,7 +5,7 @@
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { tick, untrack } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
@@ -15,9 +15,10 @@
 		set: Set;
 		fontFamily?: string;
 		displayAbcFields: string;
+		children: Snippet;
 	}
 
-	let { folderName, set, fontFamily, displayAbcFields }: Props = $props();
+	let { children, folderName, set, fontFamily, displayAbcFields }: Props = $props();
 
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
@@ -40,7 +41,7 @@
 	let innerHeight: number = $state(0),
 		innerWidth: number = $state(0);
 	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
-	let slotFilled = $derived($$slots.default);
+	let slotFilled = $derived(children !== undefined);
 	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
 	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
 
@@ -255,7 +256,7 @@
 	</div>
 
 	{#if !$notesHidden}
-		<div class="notes-container"><slot /></div>
+		<div class="notes-container">{@render children?.()}</div>
 	{/if}
 </div>
 
