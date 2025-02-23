@@ -1,18 +1,30 @@
 <script lang="ts">
 	import Incipit from '$lib/Incipit.svelte';
 	import type { Set } from '$lib/types/index.js';
-	/** The path to where your sets pages will be */
-	export let basePath = '/';
-	/** The set to show in the preview */
-	export let set: Set;
-	/** Should the set-level text notes be displayed? */
-	export let showNotes = true;
-	/** The font family to use for text rendered as part of the ABC */
-	export let tuneFont: string | undefined = undefined;
-	/** A list of ABC headers to display, specified as a string (e.g. 'TCBN') */
-	export let displayAbcFields: string | undefined = undefined;
-	/** The element to use for the heading. Set to undefined to hide the heading. */
-	export let headingTy: string | undefined = 'h2';
+
+	interface Props {
+		/** The path to where your sets pages will be */
+		basePath?: string;
+		/** The set to show in the preview */
+		set: Set;
+		/** Should the set-level text notes be displayed? */
+		showNotes?: boolean;
+		/** The font family to use for text rendered as part of the ABC */
+		tuneFont?: string | undefined;
+		/** A list of ABC headers to display, specified as a string (e.g. 'TCBN') */
+		displayAbcFields?: string | undefined;
+		/** The element to use for the heading. Set to undefined to hide the heading. */
+		headingTy?: string | undefined;
+	}
+
+	let {
+		basePath = '/',
+		set,
+		showNotes = true,
+		tuneFont = undefined,
+		displayAbcFields = undefined,
+		headingTy = 'h2'
+	}: Props = $props();
 </script>
 
 <a href={basePath + set.slug}>

@@ -24,6 +24,29 @@ test('index page can be filtered', async ({ page }) => {
 	await expect(jig).toBeVisible();
 });
 
+test('index page remembers filters', async ({ page }) => {
+	await page.goto('/');
+
+	await page.getByText('Reels', { exact: true }).tap();
+	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
+	const jig = page.getByText('Seven Stars', { exact: true });
+	await expect(reel).not.toBeVisible();
+	await expect(jig).toBeVisible();
+
+	await page.goto('/');
+	await expect(reel).not.toBeVisible();
+	await expect(jig).toBeVisible();
+
+	await page.getByText('Jigs', { exact: true }).tap();
+	await expect(reel).not.toBeVisible();
+	await expect(jig).not.toBeVisible();
+
+	// Should reset if we leave everything unchecked
+	await page.goto('/');
+	await expect(reel).toBeVisible();
+	await expect(jig).toBeVisible();
+});
+
 test('autozoom zooms tunes when showing and hiding controls via clicking', async ({ page }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();

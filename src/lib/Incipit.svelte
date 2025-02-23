@@ -3,15 +3,19 @@
 	import Tune from './Tune.svelte';
 	import { keyedLocalStorage } from './keyedLocalStorage';
 
-	export let abc: string;
-	export let fontFamily: string | undefined = undefined;
-	export let displayAbcFields: string = 'T';
+	interface Props {
+		abc: string;
+		fontFamily?: string | undefined;
+		displayAbcFields?: string;
+	}
+
+	let { abc, fontFamily = undefined, displayAbcFields = 'T' }: Props = $props();
 
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
 	}
 
-	$: preservedFieldRegex = new RegExp(`^[XKML${displayAbcFields}]`);
+	let preservedFieldRegex = $derived(new RegExp(`^[XKML${displayAbcFields}]`));
 
 	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
 
