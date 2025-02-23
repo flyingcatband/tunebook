@@ -4,7 +4,6 @@
 	const { renderAbc } = pkg;
 	import { writable, type Writable } from 'svelte/store';
 	import { tick } from 'svelte';
-	import { createEventDispatcher } from 'svelte';
 	export let visualTranspose = 0;
 	export let tuneOffset: Writable<number>;
 	export let abc: string;
@@ -17,8 +16,7 @@
 	export let showTransposition = true;
 	let dots: HTMLDivElement;
 	export let refreshVisibility = writable(0);
-
-	const dispatch = createEventDispatcher();
+	export let onrerenderedAbc: () => void;
 
 	// Normalize repeats to start at the beginning of a line rather than the end of the previous line
 	// abcjs displays repeats where written in the abc, so it looks weird if we don't do this
@@ -30,7 +28,7 @@
 			? amendedAbc.replace(
 					/\n(T:[^\n]*)\n/,
 					(match, mainTitle) => `\n${mainTitle}\nT: ${transpose_summary}\n`
-			  )
+				)
 			: amendedAbc;
 
 	$: if (dots && BROWSER) {
@@ -49,7 +47,7 @@
 						textfont: `${fontFamily} ${fontSize}`,
 						vocalfont: `${fontFamily} ${fontSize}`,
 						wordsfont: `${fontFamily} ${fontSize}`
-				  }
+					}
 				: {},
 			visualTranspose: visualTranspose + $tuneOffset,
 			selectTypes: false,
@@ -64,7 +62,7 @@
 	let svg: SVGElement | undefined = undefined;
 	async function updateSvg() {
 		await tick();
-		dispatch('rerendered-abc');
+		onrerenderedAbc();
 		svg = dots?.getElementsByTagName('svg')?.[0];
 		if (typeof fontFamily !== 'undefined') {
 			let fontStr = fontFamily;

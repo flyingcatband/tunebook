@@ -5,21 +5,25 @@
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import type { Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
 
-	export let folderName: string = 'Tunebook';
-	export let set: Set;
-	export let fontFamily: string | undefined = undefined;
-	export let displayAbcFields: string = 'TNC';
+	interface Props {
+		folderName: string;
+		set: Set;
+		fontFamily?: string;
+		displayAbcFields: string;
+	}
+
+	let { folderName, set, fontFamily, displayAbcFields }: Props = $props();
 
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
 	}
 
-	$: preservedFieldRegex = new RegExp(`^[XKML${displayAbcFields}]`);
+	let preservedFieldRegex = $derived(new RegExp(`^[XKML${displayAbcFields}]`));
 
 	function stripUnwantedHeaders(abc: string): string {
 		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '');
@@ -33,57 +37,76 @@
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
-	$: slotFilled = $$slots.default;
-	$: notesBeside = keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false);
-	$: notesHidden = keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false);
+	let innerHeight: number = $state(0),
+		innerWidth: number = $state(0);
+	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
+	let slotFilled = $derived($$slots.default);
+	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
+	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = set.content.map((tune) => {
 		const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
+		let div = $state<Element>();
 		return {
 			...tune,
+			get div() {
+				return div;
+			},
+			set div(value) {
+				div = value;
+			},
 			originalKey: abcDetails?.getKeySignature(),
 			offset: keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0)
 		};
 	});
 
-	let tunesContainer: Element;
+	let tunesContainer: Element | undefined = $state();
 	let visualTranspose = keyedLocalStorage(`globalTransposition`, 0);
-	let hideControls = true;
-	$: autozoomEnabled = keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true);
+	let hideControls = $state(true);
+	let autozoomEnabled = $derived(keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true));
 
-	let innerHeight: number, innerWidth: number;
-	$: orientation = innerHeight >= innerWidth ? 'portrait' : 'landscape';
-	$: maxWidth = keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95);
-	$: updateWidth(maxWidth);
+	let maxWidth = $derived(keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95));
+	$effect(() => updateWidth(maxWidth));
 
 	function updateWidth(maxWidth: Writable<number>) {
-		maxWidth.subscribe(async () => {
-			$refreshVisibility++;
+		maxWidth.subscribe(() => {
+			untrack(() => $refreshVisibility++);
 		});
 	}
 
-	let visible = [...Array(set.content.length)];
-	let displayFrom = [0];
-	$: visible = displayFrom && visible;
-	$: visible[displayFrom[displayFrom.length - 1]] =
-		visible[displayFrom[displayFrom.length - 1]] || true;
+	let visible = $state([...Array(set.content.length)]);
+	let displayFrom = $state([0]);
+	$effect(() => {
+		let index = displayFrom.at(-1)!;
+		visible[index] = visible[index] || true;
+	});
 	let refreshVisibility = writable(0);
-	$: displayFrom && $refreshVisibility++;
+	$effect(() => {
+		displayFrom && untrack(() => $refreshVisibility++);
+	});
 
 	// Don't allocate scroll space for hidden tunes but
 	// briefly add it back in when the zoom level or
 	// current page changes
-	let zeroHeightIfOverflowing = true;
-	refreshVisibility.subscribe(async () => {
-		zeroHeightIfOverflowing = false;
-		await tick();
-		await tick();
-		zeroHeightIfOverflowing = true;
+	let zeroHeightIfOverflowing = $state(true);
+	$effect(() => {
+		// react to refreshVisibility
+		$refreshVisibility;
+		(async () => {
+			zeroHeightIfOverflowing = false;
+			await tick();
+			await tick();
+			zeroHeightIfOverflowing = true;
+		})();
 	});
 
-	$: innerHeight && innerWidth && fitToPage();
+	$effect(() => {
+		hideControls;
+		orientation;
+		innerHeight && innerWidth && untrack(fitToPage);
+	});
 
 	let autoZooming = false;
 	async function fitToPage() {
@@ -133,12 +156,6 @@
 		autoZooming = false;
 		$maxWidth = $maxWidth;
 	}
-
-	$: {
-		hideControls;
-		orientation;
-		fitToPage();
-	}
 </script>
 
 <svelte:head>
@@ -152,19 +169,19 @@
 		<span class="key-reminder"
 			>Folder key: {ROOTS[(ROOTS.length + 3 - $visualTranspose) % ROOTS.length]}</span
 		>
-		<button class="toggle-controls" on:click={() => (hideControls = !hideControls)}
+		<button class="toggle-controls" onclick={() => (hideControls = !hideControls)}
 			>{hideControls ? 'Show' : 'Hide'} controls</button
 		>
 		<div id="controls" class:hidden={hideControls}>
 			<button
-				on:click={() => {
+				onclick={() => {
 					$autozoomEnabled = false;
 					$maxWidth -= 5;
 				}}
 				disabled={$maxWidth <= 20}>Zoom out</button
 			>
 			<button
-				on:click={() => {
+				onclick={() => {
 					$autozoomEnabled = false;
 					$maxWidth += 5;
 				}}
@@ -172,7 +189,7 @@
 			>
 			{#if !$autozoomEnabled}
 				<button
-					on:click={() => {
+					onclick={() => {
 						$autozoomEnabled = true;
 						fitToPage();
 					}}>Fit to page</button
@@ -180,13 +197,13 @@
 			{/if}
 			{#if slotFilled}
 				<button
-					on:click={() => {
+					onclick={() => {
 						$notesBeside = !$notesBeside;
 						$refreshVisibility++;
 					}}>Notes {$notesBeside ? 'below' : 'beside'}</button
 				>
 				<button
-					on:click={() => {
+					onclick={() => {
 						$notesHidden = !$notesHidden;
 						$refreshVisibility++;
 					}}>{$notesHidden ? 'Show' : 'Hide'} notes</button
@@ -216,11 +233,11 @@
 					{/if}
 					<button
 						class:hidden={hideControls}
-						on:click={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
+						onclick={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
 					>
 					<button
 						class:hidden={hideControls}
-						on:click={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
+						onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
 					>
 					<Tune
 						abc={stripUnwantedHeaders(tune.abc)}
@@ -230,7 +247,7 @@
 						{refreshVisibility}
 						{fontFamily}
 						{tunesContainer}
-						on:rerendered-abc={fitToPage}
+						onrerenderedAbc={fitToPage}
 					/>
 				</div>
 			{/if}
@@ -244,24 +261,23 @@
 
 {#if displayFrom.length > 1}
 	<button
-		on:click={() => {
+		onclick={() => {
 			window.scrollBy(0, -25);
 			displayFrom.pop();
-			displayFrom = displayFrom;
 		}}
 		class="page back"
 		aria-label="Previous page"
 	>
-		<div />
+		<div></div>
 	</button>
 {/if}
 {#if !visible[visible.length - 1]}
 	<button
-		on:click={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
+		onclick={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
 		class="page next"
 		aria-label="Next page"
 	>
-		<div />
+		<div></div>
 	</button>
 {/if}
 

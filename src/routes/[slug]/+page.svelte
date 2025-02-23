@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
 	import ViewSet from '$lib/ViewSet.svelte';
-	export let data;
-	$: set = data.set;
+	let { data } = $props();
+	let set = $derived(data.set);
 </script>
 
-<button class="z-20 fixed left-3 top-3" on:click={() => history.back()}>Back</button>
+<button class="z-20 fixed left-3 top-3" onclick={() => history.back()}>Back</button>
 <ViewSet {set} folderName={data.folder.name} fontFamily="sans-serif" displayAbcFields="TNCRO">
 	<h2>Extra notes</h2>
 	{#if set.notes}
