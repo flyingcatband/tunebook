@@ -18,7 +18,13 @@
 		children: Snippet;
 	}
 
-	let { children, folderName, set, fontFamily, displayAbcFields }: Props = $props();
+	let {
+		children,
+		folderName = 'Tunebook',
+		set,
+		fontFamily,
+		displayAbcFields = 'TNC'
+	}: Props = $props();
 
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
