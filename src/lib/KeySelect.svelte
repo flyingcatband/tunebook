@@ -2,9 +2,13 @@
 	import type { KeyAccidentalName, KeyRoot, KeySignature } from 'abcjs';
 	import type { Readable } from 'svelte/store';
 
-	export let originalKey: KeySignature;
-	export let transposition: Readable<number>;
-	export let tuneSlug: string;
+	interface Props {
+		originalKey: KeySignature;
+		transposition: Readable<number>;
+		tuneSlug: string;
+	}
+
+	let { originalKey, transposition, tuneSlug }: Props = $props();
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
@@ -48,17 +52,19 @@
 		}
 	}
 
-	$: writtenKey = (originalKey.root + originalKey.acc) as WrittenKey;
-	$: availableKeys = [...Array(24).keys()].map((i) => {
-		const transposition = i - 11;
-		const root = ROOTS[(ROOT_NUMBERS[writtenKey] + 12 + transposition) % 12];
-		let mode: string = originalKey.mode;
-		if (!mode.match(/m?/)) {
-			mode = ` ${mode}`;
-		}
+	let writtenKey = $derived((originalKey.root + originalKey.acc) as WrittenKey);
+	let availableKeys = $derived(
+		[...Array(24).keys()].map((i) => {
+			const transposition = i - 11;
+			const root = ROOTS[(ROOT_NUMBERS[writtenKey] + 12 + transposition) % 12];
+			let mode: string = originalKey.mode;
+			if (!mode.match(/m?/)) {
+				mode = ` ${mode}`;
+			}
 
-		return [`${root}${mode}`, transposition] as const;
-	});
+			return [`${root}${mode}`, transposition] as const;
+		})
+	);
 </script>
 
 <select bind:value={$transposition} aria-label="Transpose {tuneSlug}">

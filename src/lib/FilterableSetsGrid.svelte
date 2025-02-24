@@ -3,22 +3,35 @@
 	import SetPreview from '$lib/SetPreview.svelte';
 	import type { Folder } from './types/index.js';
 
-	export let folder: Folder;
-	export let tuneFont: string | undefined = undefined;
-	export let filtersTitle: string | undefined = undefined;
-	export let displayAbcFields: string | undefined = undefined;
-	export let showNotes: boolean | undefined = undefined;
-	export let basePath: string | undefined = undefined;
+	interface Props {
+		folder: Folder;
+		tuneFont?: string | undefined;
+		filtersTitle?: string | undefined;
+		displayAbcFields?: string | undefined;
+		showNotes?: boolean | undefined;
+		basePath?: string | undefined;
+	}
+
+	let {
+		folder,
+		tuneFont = undefined,
+		filtersTitle = undefined,
+		displayAbcFields = undefined,
+		showNotes = undefined,
+		basePath = undefined
+	}: Props = $props();
 </script>
 
-<FilterSets {folder} {filtersTitle} let:visibleSections>
-	<div class="set-list">
-		{#each visibleSections as section}
-			{#each section.content as set}
-				<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {basePath} />
+<FilterSets {folder} {filtersTitle}>
+	{#snippet children({ visibleSections })}
+		<div class="set-list">
+			{#each visibleSections as section}
+				{#each section.content as set}
+					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {basePath} />
+				{/each}
 			{/each}
-		{/each}
-	</div>
+		</div>
+	{/snippet}
 </FilterSets>
 
 <style lang="postcss">

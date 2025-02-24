@@ -1,36 +1,52 @@
 <script lang="ts">
-	import type { Section } from '$lib/types/index.js';
+	import type { Folder } from '$lib/types/index.js';
+	import { keyedLocalStorage } from './keyedLocalStorage';
 
-	export let folder: { name: string; content: (Section & { visible?: boolean })[] };
-	export let filtersTitle = 'Filter sets';
-	resetFilters();
-	let visibleSections = folder.content;
-	$: visibleSections = folder.content.filter((f) => f.visible);
+	interface Props {
+		folder: Folder;
+		filtersTitle?: string;
+		children?: import('svelte').Snippet<[any]>;
+	}
+
+	let { folder, filtersTitle = 'Filter sets', children }: Props = $props();
+	let visible = keyedLocalStorage(
+		`visibleSets-${folder.name}`,
+		Object.fromEntries(folder.content.map((f) => [f.name, true]))
+	);
+	if (folder.content.every((f) => !$visible[f.name])) {
+		resetFilters();
+	}
+	folder.content.forEach((f) => {
+		if ($visible[f.name] === undefined) {
+			$visible[f.name] = true;
+		}
+	});
+	let visibleSections = $state(folder.content);
+	$effect.pre(() => {
+		visibleSections = folder.content.filter((f) => $visible[f.name]);
+	});
 	function resetFilters() {
-		if (!folder) return;
-		folder.content.forEach((f) => (f.visible = true));
-		folder.content = folder.content;
+		folder.content.forEach((f) => ($visible[f.name] = true));
 	}
 	function unsetFilters() {
-		if (!folder) return;
-		folder.content.forEach((f) => (f.visible = false));
-		folder.content = folder.content;
+		folder.content.forEach((f) => ($visible[f.name] = false));
 	}
 </script>
 
 <h2>{filtersTitle}</h2>
 <ul>
 	{#each folder.content as section}
-		<li><label><input bind:checked={section.visible} type="checkbox" />{section.name}</label></li>
+		<li>
+			<label><input bind:checked={$visible[section.name]} type="checkbox" />{section.name}</label>
+		</li>
 	{/each}
 </ul>
 <div class="buttons">
-	<button on:click={unsetFilters}>None of the tune types</button><button on:click={resetFilters}
-		>Any type of tune</button
-	>
+	<button onclick={unsetFilters}>None of the tune types</button>
+	<button onclick={resetFilters}>Any type of tune</button>
 </div>
 
-<slot {visibleSections} />
+{@render children?.({ visibleSections })}
 
 <style lang="postcss">
 	ul {

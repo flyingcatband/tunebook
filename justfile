@@ -26,6 +26,7 @@ format:
 
 # Run static analysis on the code
 lint:
+    pnpm check
     pnpm lint
 
 # Run all the tests

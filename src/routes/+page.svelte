@@ -2,7 +2,7 @@
 	import FilterableSetsGrid from '$lib/FilterableSetsGrid.svelte';
 	import { keyedLocalStorage } from '$lib/keyedLocalStorage.js';
 
-	export let data;
+	let { data } = $props();
 
 	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
 </script>
@@ -21,9 +21,9 @@
 
 <h2>Global transposition options</h2>
 <p class="mx-auto w-fit flex flex-wrap gap-2">
-	<button on:click={() => ($visualTranspose = 2)}>Make the folder B♭</button>
-	<button on:click={() => ($visualTranspose = 0)}>Make the folder C</button>
-	<button on:click={() => ($visualTranspose = -3)}>Make the folder E♭</button>
+	<button onclick={() => ($visualTranspose = 2)}>Make the folder B♭</button>
+	<button onclick={() => ($visualTranspose = 0)}>Make the folder C</button>
+	<button onclick={() => ($visualTranspose = -3)}>Make the folder E♭</button>
 </p>
 
 <div class="filterable-sets-grid">
