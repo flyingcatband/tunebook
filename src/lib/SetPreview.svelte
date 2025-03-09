@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import Incipit from '$lib/Incipit.svelte';
 	import type { Set } from '$lib/types/index.js';
 
@@ -25,6 +26,13 @@
 		displayAbcFields = undefined,
 		headingTy = 'h2'
 	}: Props = $props();
+
+	if (!basePath.startsWith(base)) {
+		if (basePath.startsWith('/')) {
+			basePath = basePath.slice(1);
+		}
+		basePath = `${base}/${basePath}`;
+	}
 </script>
 
 <a href={basePath + set.slug}>
