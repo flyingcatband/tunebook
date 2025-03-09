@@ -98,15 +98,44 @@ test('autozoom zooms tunes sensibly after the second tune is transposed', async 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
 
-	const transpositionSubtitle = page.getByText('Transposed +2', { exact: true });
+	const transpositionSubtitle = page.getByText('Transposed +3', { exact: true });
 	await expect(transpositionSubtitle).not.toBeInViewport();
-	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (+2)');
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('F (+3)');
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 	await expect(transpositionSubtitle).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeVisible();
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+});
+
+test('transposition summary recognises Bb/Eb', async ({ page }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+
+	let transpositionSubtitle = page.getByText('Transposed +2 (for B♭ instruments)', { exact: true });
+	await expect(transpositionSubtitle).not.toBeInViewport();
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (+2)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	transpositionSubtitle = page.getByText('Transposed -10 (for B♭ instruments)', { exact: true });
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (-10)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	transpositionSubtitle = page.getByText('Transposed -3 (for E♭ instruments)', { exact: true });
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('B (-3)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	await page.goto('/');
+	await page.getByText('Make the folder B♭').click();
+
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Transposed -3')).toBeVisible();
+	await expect(page.getByText('(for E♭ instruments)')).not.toBeVisible();
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {

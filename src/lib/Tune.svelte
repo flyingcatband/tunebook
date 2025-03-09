@@ -78,8 +78,19 @@
 	// Normalize repeats to start at the beginning of a line rather than the end of the previous line
 	// abcjs displays repeats where written in the abc, so it looks weird if we don't do this
 	let amendedAbc = $derived(abc.replace(/\|: *\n/g, '||\n|:').replace(/::.*\n/g, ':|\n|:'));
-	// TODO might be nice to say what these mean eg +2 = for B♭ instruments
-	let transpose_summary = $derived(`Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset}`);
+	let tuneOffsetMagnitude = $derived((($tuneOffset % 12) + 12) % 12);
+	let transposeName = $derived(
+		globalTransposition === 0
+			? tuneOffsetMagnitude === 2
+				? '(for B♭ instruments)'
+				: tuneOffsetMagnitude === 9
+					? '(for E♭ instruments)'
+					: ''
+			: ''
+	);
+	let transpose_summary = $derived(
+		`Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset} ${transposeName}`.trim()
+	);
 	let moreAmendedAbc = $derived(
 		showTransposition && $tuneOffset !== 0
 			? amendedAbc.replace(
