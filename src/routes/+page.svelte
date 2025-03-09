@@ -18,7 +18,7 @@
 </p>
 
 <h2>Global transposition options</h2>
-<GlobalTranspositionButtons />
+<GlobalTranspositionButtons showClefSwitcher />
 
 <div class="filterable-sets-grid">
 	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" />

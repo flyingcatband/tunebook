@@ -6,7 +6,7 @@
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
 	import { tick, untrack, type Snippet } from 'svelte';
-	import type { Set, Tune as TuneTy } from './types/index.js';
+	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
 
@@ -15,6 +15,7 @@
 		set: Set;
 		fontFamily?: string;
 		displayAbcFields?: string;
+		showClefSwitcher?: boolean;
 		children: Snippet;
 	}
 
@@ -23,6 +24,7 @@
 		folderName = 'Tunebook',
 		set,
 		fontFamily,
+		showClefSwitcher = false,
 		displayAbcFields = 'TNC'
 	}: Props = $props();
 
@@ -43,6 +45,17 @@
 		return preservedFields.join('\n') + '\n' + trimmedAbc.slice(tuneStartIndex);
 	}
 
+	function applyClef(clef: Clef | 'global', abc: string) {
+		if (clef === 'global') {
+			clef = $globalClef;
+		}
+		if (clef === 'bass') {
+			return abc.replaceAll(/K: ?[^ \r\n]+/g, (match) => `${match} clef=bass octave=-2`);
+		} else {
+			return abc;
+		}
+	}
+
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
 	let innerHeight: number = $state(0),
@@ -51,6 +64,8 @@
 	let slotFilled = $derived(children !== undefined);
 	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
 	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
+	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
+	let clef: Writable<Clef | 'global'> = $derived(keyedLocalStorage(`${set.slug}_clef`, 'global'));
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
@@ -217,6 +232,13 @@
 					}}>{$notesHidden ? 'Show' : 'Hide'} notes</button
 				>
 			{/if}
+			{#if showClefSwitcher}
+				<select bind:value={$clef}>
+					<option value="global">Use global clef ({$globalClef})</option>
+					<option value="treble">Treble clef</option>
+					<option value="bass">Bass clef</option>
+				</select>
+			{/if}
 			<p>Current zoom level {$maxWidth}%</p>
 		</div>
 	</div>
@@ -248,7 +270,7 @@
 						onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
 					>
 					<Tune
-						abc={stripUnwantedHeaders(tune.abc)}
+						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
 						globalTransposition={$globalTransposition}
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}
