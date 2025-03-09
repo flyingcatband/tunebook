@@ -3,7 +3,9 @@
 	import { keyedLocalStorage } from './keyedLocalStorage';
 
 	interface Props {
+		/** The folder to display sets from */
 		folder: Folder;
+		/** The title to display above the filter checkboxes */
 		filtersTitle?: string;
 		children?: import('svelte').Snippet<[any]>;
 	}

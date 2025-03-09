@@ -4,8 +4,11 @@
 	import { keyedLocalStorage } from './keyedLocalStorage';
 
 	interface Props {
+		/** The full ABC for the tune you want to display */
 		abc: string;
+		/** The font family to use for text rendered as part of the ABC */
 		fontFamily?: string | undefined;
+		/** A list of ABC headers to display, specified as a string (e.g. 'TCBN') */
 		displayAbcFields?: string;
 	}
 
@@ -17,7 +20,7 @@
 
 	let preservedFieldRegex = $derived(new RegExp(`^[XKML${displayAbcFields}]`));
 
-	const visualTranspose = keyedLocalStorage('globalTransposition', 0);
+	const globalTransposition = keyedLocalStorage('globalTransposition', 0);
 
 	function firstTwoBars(abcTuneSection: string): string {
 		const [firstChar, rest] = [abcTuneSection[0], abcTuneSection.slice(1)];
@@ -44,5 +47,5 @@
 	titleSize={12}
 	tuneOffset={writable(0)}
 	showTransposition={false}
-	visualTranspose={$visualTranspose}
+	globalTransposition={$globalTransposition}
 />
