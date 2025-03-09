@@ -67,7 +67,8 @@ function addTagsFrom(abc: string, tags: string[]) {
 	}
 }
 
-function extractTags(abc: string): string[] {
+/** Extract the tags from the `G` fields in the abc string */
+export function extractTags(abc: string): string[] {
 	const results = [];
 	for (const match of abc.matchAll(/^G: *([\w, -]+) *$/gm)) {
 		results.push(
