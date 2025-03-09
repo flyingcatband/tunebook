@@ -71,7 +71,7 @@
 	});
 
 	let tunesContainer: Element | undefined = $state();
-	let visualTranspose = keyedLocalStorage(`globalTransposition`, 0);
+	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
 	let autozoomEnabled = $derived(keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true));
 
@@ -175,7 +175,7 @@
 <div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
 	<div class="controls-container">
 		<span class="key-reminder"
-			>Folder key: {ROOTS[(ROOTS.length + 3 - $visualTranspose) % ROOTS.length]}</span
+			>Folder key: {ROOTS[(ROOTS.length + 3 - $globalTransposition) % ROOTS.length]}</span
 		>
 		<button class="toggle-controls" onclick={() => (hideControls = !hideControls)}
 			>{hideControls ? 'Show' : 'Hide'} controls</button
@@ -249,7 +249,7 @@
 					>
 					<Tune
 						abc={stripUnwantedHeaders(tune.abc)}
-						visualTranspose={$visualTranspose}
+						globalTransposition={$globalTransposition}
 						tuneOffset={tune.offset}
 						bind:visible={visible[i]}
 						{refreshVisibility}

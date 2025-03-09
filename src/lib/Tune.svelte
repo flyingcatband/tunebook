@@ -6,9 +6,16 @@
 	import { tick, untrack } from 'svelte';
 	let dots: HTMLDivElement | undefined = $state();
 	interface Props {
-		visualTranspose?: number;
+		/** The number of semitones to transpose all tunes by
+		 *
+		 * For example, to make a Bb folder, set this to 2
+		 */
+		globalTransposition?: number;
+		/** The number of semitones to transpose the tune by */
 		tuneOffset: Writable<number>;
+		/** The ABC for the tune you want to display */
 		abc: string;
+		/** The font family to use for text rendered as part of the ABC */
 		fontFamily?: string | undefined;
 		staffwidth?: number | undefined;
 		tunesContainer?: Element | undefined;
@@ -21,7 +28,7 @@
 	}
 
 	let {
-		visualTranspose = 0,
+		globalTransposition = 0,
 		tuneOffset,
 		abc,
 		fontFamily = undefined,
@@ -100,7 +107,7 @@
 							wordsfont: `${fontFamily} ${fontSize}`
 						}
 					: {},
-				visualTranspose: visualTranspose + $tuneOffset,
+				visualTranspose: globalTransposition + $tuneOffset,
 				selectTypes: false,
 				responsive: 'resize',
 				// This makes typescript happy that staffwidth is not undefined
