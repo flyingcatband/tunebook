@@ -132,6 +132,24 @@ test('manually zoomed tunes reflow to fit page when controls are hidden', async 
 	await expect(thirdTune).toBeInViewport();
 });
 
+test('set and tune notes can be hidden', async ({ page }) => {
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('Extra notes', { exact: true })).toBeVisible();
+	await expect(
+		page.getByText('Extra notes for a set can be placed directly inside <ViewSet>')
+	).toBeVisible();
+	await expect(page.getByText(`Here's a note in a tune's ABC N: field`)).toBeVisible();
+
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await page.getByRole('button', { name: 'Hide notes' }).click();
+
+	await expect(page.getByText('Extra notes', { exact: true })).not.toBeVisible();
+	await expect(
+		page.getByText('Extra notes for a set can be placed directly inside <ViewSet>')
+	).not.toBeVisible();
+	await expect(page.getByText(`Here's a note in a tune's ABC N: field`)).not.toBeVisible();
+});
+
 test('first page remains unchanged upon return', async ({ page }) => {
 	const secondTune = page.getByText('The Silver Spear', { exact: true });
 	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });

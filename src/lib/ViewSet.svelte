@@ -32,7 +32,22 @@
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
 	}
 
-	let preservedFieldRegex = $derived(new RegExp(`^[XKML${displayAbcFields}]`));
+	let innerHeight: number = $state(0),
+		innerWidth: number = $state(0);
+	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
+	let slotFilled = $derived(children !== undefined);
+	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
+	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
+	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
+	let clef: Writable<Clef | 'global'> = $derived(keyedLocalStorage(`${set.slug}_clef`, 'global'));
+	let preservedFieldRegex = $derived(
+		new RegExp(
+			`^[XKML${displayAbcFields
+				.split('')
+				.filter((f) => !$notesHidden || !'BNSF'.includes(f))
+				.join('')}]`
+		)
+	);
 
 	function stripUnwantedHeaders(abc: string): string {
 		const trimmedAbc = abc.replace(/\n\s*/g, '\n').replace(/%[^\n]*\n/g, '');
@@ -57,15 +72,6 @@
 	}
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
-
-	let innerHeight: number = $state(0),
-		innerWidth: number = $state(0);
-	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
-	let slotFilled = $derived(children !== undefined);
-	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
-	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
-	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
-	let clef: Writable<Clef | 'global'> = $derived(keyedLocalStorage(`${set.slug}_clef`, 'global'));
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
