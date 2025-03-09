@@ -11,10 +11,10 @@
 	const { renderAbc } = pkg;
 
 	interface Props {
-		folderName: string;
+		folderName?: string;
 		set: Set;
 		fontFamily?: string;
-		displayAbcFields: string;
+		displayAbcFields?: string;
 		children: Snippet;
 	}
 
