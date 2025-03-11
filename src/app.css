@@ -1,6 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+html {
+	font-family: sans-serif;
+	--set-preview-width: 25rem;
+	--accent-color: #2e865f;
+	--text-on-accent: white;
+	accent-color: var(--accent-color);
+}
+
+body {
+	margin: 0;
+	padding: 0;
+}
 
 h1,
 h2,
@@ -9,44 +18,49 @@ h4,
 h5,
 h6 {
 	font-weight: bold;
-	@apply text-emerald-800;
+	color: var(--accent-color);
 }
 
 h1 {
-	@apply text-3xl text-center;
+	font-size: 1.875rem;
+	text-align: center;
 }
 
 h2 {
-	@apply text-2xl;
+	font-size: 1.5rem;
 }
 
 button {
-	@apply cursor-pointer bg-emerald-800 text-white px-2.5 py-1.5 font-bold hover:bg-opacity-80 rounded-md;
-	@apply disabled:opacity-50 disabled:cursor-not-allowed;
+	cursor: pointer;
+	background-color: var(--accent-color);
+	color: var(--text-on-accent);
+	padding: 0.625rem 1.25rem;
+	font-weight: bold;
+	border-radius: 0.375rem;
+	border: none;
 }
 
-button,
-select {
-	@apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800;
+button:hover {
+	background-color: rgba(46, 134, 95, 0.8);
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+button:focus-visible,
+select:focus-visible {
+	outline: 2px solid var(--accent-color);
+	outline-offset: 2px;
 }
 
 body {
 	touch-action: pan-y;
-	@apply accent-emerald-800;
 }
 
-.set-preview {
-	@apply ring-emerald-800 ring-4 rounded-md;
-}
-
-.tag-list {
-	@apply my-2;
-}
-
-.tag {
-	@apply border-emerald-800 bg-emerald-800 text-white font-bold px-3 py-1 rounded-full;
-}
-
+/* iOS selects use the accent color as the text color
+if your accent color is eg yellow, this makes selects unreadable */
 select {
-	@apply accent-black;
+	accent-color: black;
 }

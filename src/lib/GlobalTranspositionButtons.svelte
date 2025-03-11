@@ -18,7 +18,7 @@
 	}
 </script>
 
-<p class="mx-auto w-fit flex flex-wrap gap-2">
+<p>
 	<button onclick={() => ($globalTransposition = 2)}>Make the folder B♭</button>
 	<button onclick={() => ($globalTransposition = 0)}>Make the folder C</button>
 	<button onclick={() => ($globalTransposition = -3)}>Make the folder E♭</button>
@@ -28,3 +28,13 @@
 		</button>
 	{/if}
 </p>
+
+<style>
+	p {
+		margin: 0 auto;
+		width: fit-content;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+</style>

@@ -4,7 +4,7 @@
 	let set = $derived(data.set);
 </script>
 
-<button class="z-20 fixed left-3 top-3" onclick={() => history.back()}>Back</button>
+<button onclick={() => history.back()}>Back</button>
 <ViewSet
 	{set}
 	folderName={data.folder.name}
@@ -14,7 +14,7 @@
 >
 	<h2>Extra notes</h2>
 	{#if set.notes}
-		<p style="font-style:italic">{set.notes}</p>
+		<p class="notes">{set.notes}</p>
 	{/if}
 	<p>Extra notes for a set can be placed directly inside <code>&lt;ViewSet&gt;</code></p>
 	<p>
@@ -27,9 +27,20 @@
 
 <style lang="postcss">
 	p {
-		@apply mt-2;
+		margin-top: 0.5rem;
 	}
+
 	p:last-child {
-		@apply mb-4;
+		margin-bottom: 1rem;
+	}
+
+	button {
+		position: fixed;
+		z-index: 20;
+		left: 0.75rem;
+		top: 0.75rem;
+	}
+	p.notes {
+		font-style: italic;
 	}
 </style>

@@ -49,16 +49,34 @@
 </a>
 
 <style lang="postcss">
+	a {
+		text-decoration: none;
+		color: inherit;
+	}
 	.set-preview {
-		@apply py-4 px-2;
+		padding: 1rem;
 		width: var(--set-preview-width, 20rem);
-		@apply text-center;
-		@apply box-border;
+		text-align: center;
+		box-sizing: border-box;
+		border: 4px solid var(--accent-color);
+		border-radius: 0.375rem;
 	}
 	.tag-list {
-		@apply flex gap-x-2 gap-y-1 justify-center;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+		list-style-type: none;
+		margin: 0.5rem 0;
+		padding: 0;
 	}
 	.tag {
-		@apply w-fit;
+		width: fit-content;
+		border: 1px solid var(--accent-color);
+		background-color: var(--accent-color);
+		color: var(--text-on-accent);
+		font-weight: bold;
+		padding: 0.25rem 0.75rem;
+		border-radius: 0.375rem;
 	}
 </style>

@@ -39,15 +39,26 @@
 
 <style lang="postcss">
 	.filterable-sets-grid {
-		@apply mx-auto;
+		margin: 0 auto;
 	}
 	p {
-		@apply max-w-prose mx-auto text-lg my-4;
+		max-width: 65ch;
+		margin: 1rem auto 1.5rem;
+		font-size: 1.125rem;
+		line-height: 140%;
 	}
 	h1 {
-		@apply mt-3;
+		margin-top: 1rem;
 	}
 	h2 {
-		@apply text-center;
+		text-align: center;
+	}
+
+	p.transpose {
+		margin: 0 auto;
+		width: fit-content;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 </style>

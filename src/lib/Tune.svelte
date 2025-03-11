@@ -139,7 +139,7 @@
 
 <svelte:window bind:innerHeight bind:innerWidth />
 
-<div bind:this={dots} class="mx-auto"></div>
+<div bind:this={dots}></div>
 
 <style>
 	div :global(svg) {
@@ -148,9 +148,7 @@
 
 	div {
 		width: max-content;
-	}
-
-	div {
+		margin-inline: auto;
 		user-select: none;
 	}
 </style>

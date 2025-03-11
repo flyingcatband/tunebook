@@ -46,6 +46,10 @@
 
 <style lang="postcss">
 	.set-list {
-		@apply flex flex-wrap gap-6 justify-center m-4 mb-8;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		justify-content: center;
+		margin: 1rem 0 2rem;
 	}
 </style>

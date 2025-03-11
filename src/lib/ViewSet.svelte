@@ -259,7 +259,7 @@
 					bind:this={tune.div}
 				>
 					{#if tune.originalKey}
-						<span class="inline-block" class:hidden={hideControls}>
+						<span class="original-key" class:hidden={hideControls}>
 							<KeySelect
 								transposition={tune.offset}
 								originalKey={tune.originalKey}
@@ -319,23 +319,29 @@
 
 <style lang="postcss">
 	.toggle-controls {
-		@apply block mx-auto text-xl p-4 top-0;
+		position: absolute;
+		top: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 1.5rem;
+		padding: 1rem;
 	}
 	button:not(.page) {
-		@apply relative z-10;
+		position: relative;
+		z-index: 10;
 	}
 	div {
-		@apply block;
+		display: block;
 	}
 	#controls {
-		@apply mx-auto;
+		margin: 0 auto;
 	}
 
 	.page-container {
 		display: grid;
 		height: 100svh;
 		width: 100svw;
-		@apply pt-3;
+		padding-top: 1rem;
 		box-sizing: border-box;
 	}
 
@@ -345,12 +351,14 @@
 
 	.notes-container {
 		grid-area: notes;
+		padding: 0.2em 1em;
 	}
 	.controls-container {
 		grid-area: controls;
 	}
 	.controls-container button {
-		@apply relative z-10;
+		position: relative;
+		z-index: 10;
 	}
 
 	.page-container:not(.notes-beside) {
@@ -372,17 +380,20 @@
 
 	/* TUNE CONTAINERS */
 	.tunes {
-		@apply flex flex-col;
+		flex-direction: column;
 		min-height: 100%;
 		width: 100%;
+		display: flex;
 	}
 
 	.two-column {
-		@apply flex-wrap mx-auto;
+		flex-wrap: wrap;
+		margin: 0 auto;
 	}
 
 	.tune :global(select) {
-		@apply relative z-10;
+		position: relative;
+		z-index: 10;
 	}
 
 	/* HIDING TUNES THAT AREN'T DISPLAYED */
@@ -396,11 +407,16 @@
 	.hidden {
 		display: none;
 	}
+
+	.original-key {
+		display: inline-block;
+	}
 	.zeroHeightIfOverflowing.visible-false {
 		height: 0;
 	}
 	.tune {
-		@apply mx-auto w-[90%];
+		margin: 0 auto;
+		width: 90%;
 	}
 
 	/* PAGE TURN BUTTONS */
@@ -449,6 +465,8 @@
 		margin-bottom: 1em;
 	}
 	.key-reminder {
-		@apply absolute sm:right-5 top-5 right-1;
+		position: absolute;
+		top: 1.25rem;
+		right: 1.25rem;
 	}
 </style>
