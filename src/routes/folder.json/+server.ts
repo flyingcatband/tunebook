@@ -4,7 +4,11 @@ import { addNextPreviousSlugs, generateFolderFromLatex } from '$lib/server/folde
 export const prerender = true;
 
 export function GET(): Promise<Response> {
-	return generateFolderFromLatex('Demo folder', './data/folder.tex')
-		.then(addNextPreviousSlugs)
-		.then(json);
+	return generateFolder().then(json);
 }
+
+async function generateFolder() {
+	return generateFolderFromLatex('Demo folder', './data/folder.tex').then(addNextPreviousSlugs);
+}
+
+export type MungedFolder = Awaited<ReturnType<typeof generateFolder>>;
