@@ -61,6 +61,107 @@ test('autozoom zooms tunes when showing and hiding controls via clicking', async
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 });
 
+test('autozoom zooms tunes when navigating between tunes', async ({ page }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+
+	await page.getByRole('link', { name: 'Next set' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+});
+
+test('autozoom zooms tunes when navigating from manually zoomed set', async ({ page }) => {
+	// Navigate and check autozoom has done useful things
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+
+	// Enable manual zoom
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await page.getByRole('button', { name: 'Zoom in' }).click();
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+
+	// Navigate to the next set and check that we're autozoomed as expected
+	// i.e. all tunes are visible, and there isn't a page turn button
+	await page.getByRole('link', { name: 'Next set' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByRole('button', { name: 'Next page' })).not.toBeVisible();
+
+	// Check one of the tunes actually appears exactly the same before and after reload
+	const firstTuneOnPage = page.getByRole('img').first();
+	await expect(firstTuneOnPage).toContainText('The Cliffs Of Moher');
+	const tuneBB = await firstTuneOnPage.boundingBox();
+	await page.reload();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	const tuneBB2 = await firstTuneOnPage.boundingBox();
+	expect(tuneBB!.width).toEqual(tuneBB2!.width);
+});
+
+test('autozoom restores zoom to correct value when navigating from manually zoomed set', async ({
+	page
+}) => {
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await page.getByRole('button', { name: 'Zoom in' }).click();
+	await page.getByRole('button', { name: 'Zoom in' }).click();
+	await page.getByRole('button', { name: 'Zoom in' }).click();
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+	await page.getByRole('link', { name: 'Next set' }).click();
+
+	// Check one of the tunes actually appears exactly the same before and after reload
+	const firstTuneOnPage = page.getByRole('img').first();
+	await expect(firstTuneOnPage).toContainText('The Old Morpeth Rant');
+	const tuneBB = await firstTuneOnPage.boundingBox();
+	await page.reload();
+	await expect(page.getByText('The Old Morpeth Rant', { exact: true })).toBeInViewport();
+	const tuneBB2 = await firstTuneOnPage.boundingBox();
+	expect(tuneBB!.width).toEqual(tuneBB2!.width);
+
+	// Known good value from previous test run - maybe this should be a separate test
+	expect(tuneBB!.width).toEqual(384);
+});
+
+test('set navigates to start when switching between different sets', async ({ page }) => {
+	// Navigate and wait for abc to render
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+
+	// Zoom in fully, so only one tune per page is visible
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+	while (!(await zoomIn.isDisabled())) {
+		await zoomIn.tap();
+	}
+
+	// Check we can see the first tune, but not the second
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).not.toBeInViewport();
+
+	// Repeat with the next set
+	await page.getByText('Next set').click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	while (!(await zoomIn.isDisabled())) {
+		await zoomIn.tap();
+	}
+
+	// Navigate to the second page of this set, check it actually did what we expected
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+
+	// Navigate back to the previous set, check that we're sent to the start of said set
+	await page.getByRole('link', { name: 'Previous set' }).click();
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).not.toBeInViewport();
+});
+
 test('autozoom zooms tunes when showing and hiding controls via tapping', async ({ page }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();

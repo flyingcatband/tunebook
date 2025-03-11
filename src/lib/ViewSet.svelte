@@ -84,21 +84,23 @@
 
 	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
 
-	let tunes: (TuneTy & ExtraTuneProps)[] = set.content.map((tune) => {
-		const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
-		let div = $state<Element>();
-		return {
-			...tune,
-			get div() {
-				return div;
-			},
-			set div(value) {
-				div = value;
-			},
-			originalKey: abcDetails?.getKeySignature(),
-			offset: keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0)
-		};
-	});
+	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
+		set.content.map((tune) => {
+			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
+			let div = $state<Element>();
+			return {
+				...tune,
+				get div() {
+					return div;
+				},
+				set div(value) {
+					div = value;
+				},
+				originalKey: abcDetails?.getKeySignature(),
+				offset: keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0)
+			};
+		})
+	);
 
 	let tunesContainer: Element | undefined = $state();
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
@@ -106,16 +108,16 @@
 	let autozoomEnabled = $derived(keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true));
 
 	let maxWidth = $derived(keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95));
-	$effect(() => updateWidth(maxWidth));
-
-	function updateWidth(maxWidth: Writable<number>) {
-		maxWidth.subscribe(() => {
-			untrack(() => $refreshVisibility++);
-		});
-	}
+	$effect(() => maxWidth.subscribe(() => untrack(() => $refreshVisibility++)));
 
 	let visible = $state([...Array(set.content.length)]);
 	let displayFrom = $state([0]);
+
+	$effect(() => {
+		untrack(() => (displayFrom = [0]));
+		visible = [...Array(set.content.length)];
+	});
+
 	$effect(() => {
 		let index = displayFrom.at(-1)!;
 		visible[index] = visible[index] || true;
@@ -232,7 +234,6 @@
 				<button
 					onclick={() => {
 						$autozoomEnabled = true;
-						fitToPage();
 					}}>Fit to page</button
 				>
 			{/if}
