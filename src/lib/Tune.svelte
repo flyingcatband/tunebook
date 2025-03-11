@@ -9,9 +9,10 @@
 		/** The number of semitones to transpose all tunes by
 		 *
 		 * For example, to make a Bb folder, set this to 2
+		 * and to make a Eb folder, set this to -3
 		 */
 		globalTransposition?: number;
-		/** The number of semitones to transpose the tune by */
+		/** The number of semitones to transpose this tune by */
 		tuneOffset: Writable<number>;
 		/** The ABC for the tune you want to display */
 		abc: string;
