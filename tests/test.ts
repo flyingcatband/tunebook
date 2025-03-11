@@ -98,15 +98,77 @@ test('autozoom zooms tunes sensibly after the second tune is transposed', async 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
 
-	const transpositionSubtitle = page.getByText('Transposed +2', { exact: true });
+	const transpositionSubtitle = page.getByText('Transposed +3', { exact: true });
 	await expect(transpositionSubtitle).not.toBeInViewport();
-	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (+2)');
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('F (+3)');
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 	await expect(transpositionSubtitle).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeVisible();
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+});
+
+test('transposition summary recognises Bb/Eb', async ({ page }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+
+	let transpositionSubtitle = page.getByText('Transposed +2 (for B♭ instruments)', { exact: true });
+	await expect(transpositionSubtitle).not.toBeInViewport();
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (+2)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	transpositionSubtitle = page.getByText('Transposed -10 (for B♭ instruments)', { exact: true });
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('E (-10)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	transpositionSubtitle = page.getByText('Transposed -3 (for E♭ instruments)', { exact: true });
+	await page.getByLabel('Transpose abc-seven-stars').selectOption('B (-3)');
+	await expect(transpositionSubtitle).toBeVisible();
+
+	await page.goto('/');
+	// Make sure the button press actually registers and the value is persisted
+	// before we navigate
+	await expect
+		.poll(async () => {
+			await page.getByText('Make the folder B♭').click();
+			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
+		})
+		.toBe('2');
+
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Transposed -3')).toBeVisible();
+	await expect(page.getByText('(for E♭ instruments)')).not.toBeVisible();
+});
+
+test('transposition selection quotes correct keys when globally transposed', async ({ page }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+
+	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('E (+2)');
+
+	await page.goto('/');
+	// Make sure the button press actually registers and the value is persisted
+	// before we navigate
+	await expect
+		.poll(async () => {
+			await page.getByText('Make the folder B♭').click();
+			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
+		})
+		.toBe('2');
+
+	await page.goto('/Jigs-1-Severn-Stars');
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	// In the original implementation, the transposition selection would show 'E
+	// (+2)' here since the labels ignored the global transpotition. This meant
+	// the labels didn't match the actual key shown in the ABC.
+	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('F♯ (+2)');
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
@@ -130,6 +192,24 @@ test('manually zoomed tunes reflow to fit page when controls are hidden', async 
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
 	await expect(secondTune).toBeInViewport();
 	await expect(thirdTune).toBeInViewport();
+});
+
+test('set and tune notes can be hidden', async ({ page }) => {
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('Extra notes', { exact: true })).toBeVisible();
+	await expect(
+		page.getByText('Extra notes for a set can be placed directly inside <ViewSet>')
+	).toBeVisible();
+	await expect(page.getByText(`Here's a note in a tune's ABC N: field`)).toBeVisible();
+
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await page.getByRole('button', { name: 'Hide notes' }).click();
+
+	await expect(page.getByText('Extra notes', { exact: true })).not.toBeVisible();
+	await expect(
+		page.getByText('Extra notes for a set can be placed directly inside <ViewSet>')
+	).not.toBeVisible();
+	await expect(page.getByText(`Here's a note in a tune's ABC N: field`)).not.toBeVisible();
 });
 
 test('first page remains unchanged upon return', async ({ page }) => {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { KeyAccidentalName, KeyRoot, KeySignature } from 'abcjs';
 	import type { Readable } from 'svelte/store';
+	import { keyedLocalStorage } from './keyedLocalStorage';
 
 	interface Props {
 		originalKey: KeySignature;
@@ -9,6 +10,7 @@
 	}
 
 	let { originalKey, transposition, tuneSlug }: Props = $props();
+	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
@@ -48,7 +50,15 @@
 		} else if (transposition < 0) {
 			return `(${transposition})`;
 		} else {
-			return `(concert)`;
+			if ($globalTransposition === 0) {
+				return `(concert)`;
+			} else if ($globalTransposition === 2) {
+				return `("concert" - folder in B♭)`;
+			} else if ($globalTransposition === -3) {
+				return `("concert" - folder in E♭)`;
+			} else {
+				return `(globally transposed)`;
+			}
 		}
 	}
 
@@ -56,7 +66,8 @@
 	let availableKeys = $derived(
 		[...Array(24).keys()].map((i) => {
 			const transposition = i - 11;
-			const root = ROOTS[(ROOT_NUMBERS[writtenKey] + 12 + transposition) % 12];
+			const root =
+				ROOTS[(ROOT_NUMBERS[writtenKey] + 12 + transposition + $globalTransposition) % 12];
 			let mode: string = originalKey.mode;
 			if (!mode.match(/m?/)) {
 				mode = ` ${mode}`;

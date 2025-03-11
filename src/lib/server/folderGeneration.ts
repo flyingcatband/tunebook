@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 import slugify from 'slugify';
-import type { Folder, Section, Set } from '$lib/types/index.js';
+import type { AddSetProps, Folder, Section, Set } from '$lib/types/index.js';
 
 export async function generateFolderFromLatex(
 	folderName: string,
@@ -59,6 +59,26 @@ export async function generateFolderFromLatex(
 	return folder;
 }
 
+export function addNextPreviousSlugs(
+	folder: Folder
+): AddSetProps<{ nextSlug: string; previousSlug: string }> {
+	const allSets = folder.content.flatMap((section) => section.content);
+	return {
+		...folder,
+		content: folder.content.map((section) => ({
+			name: section.name,
+			content: section.content.map((set) => {
+				const index = allSets.findIndex((s) => s.slug == set.slug);
+				return {
+					...set,
+					nextSlug: allSets.at((index + 1) % allSets.length)!.slug,
+					previousSlug: allSets.at(index - 1)!.slug
+				};
+			})
+		}))
+	};
+}
+
 function addTagsFrom(abc: string, tags: string[]) {
 	for (const tag of extractTags(abc)) {
 		if (!tags.includes(tag)) {
@@ -67,7 +87,8 @@ function addTagsFrom(abc: string, tags: string[]) {
 	}
 }
 
-function extractTags(abc: string): string[] {
+/** Extract the tags from the `G` fields in the abc string */
+export function extractTags(abc: string): string[] {
 	const results = [];
 	for (const match of abc.matchAll(/^G: *([\w, -]+) *$/gm)) {
 		results.push(
@@ -88,10 +109,7 @@ export async function generateFolderFromMultiSetAbcFile(
 	return generateFolderFromMultiSetAbcString(folderName, abc);
 }
 
-async function generateFolderFromMultiSetAbcString(
-	folderName: string,
-	abc: string
-): Promise<Folder> {
+function generateFolderFromMultiSetAbcString(folderName: string, abc: string): Folder {
 	const folder: Folder = {
 		name: folderName,
 		content: []
@@ -265,44 +283,87 @@ if (import.meta.vitest) {
 	describe('generateFolderFromMultiSetAbcString', () => {
 		const sut = generateFolderFromMultiSetAbcString;
 
-		it('extracts tags from set-level headers', async () => {
+		it('extracts tags from set-level headers', () => {
 			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2`;
 
-			const folder = await sut('Test folder', abc);
+			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].tags).toEqual(['Show set']);
 		});
 
-		it('applies global key to first tune', async () => {
+		it('applies global key to first tune', () => {
 			const abc = `X:1\nT:Jigs 1 - Som jigs\nK:G\nP:A\nT:A tune\n% ...\nabcdef\nX:2`;
 
-			const folder = await sut('Test folder', abc);
+			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].content[0].abc).toContain('K:G');
 		});
 
-		it('applies tune-specific key to first tune', async () => {
+		it('applies tune-specific key to first tune', () => {
 			const abc = `X:1\nT:Jigs 1 - Som jigs\nP:A\nT:A tune\nK:G\n% ...\nabcdef\nX:2`;
 
-			const folder = await sut('Test folder', abc);
+			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].content[0].abc).toContain('K:G');
 		});
 
-		it('does not override tune specific key with global key', async () => {
+		it('does not override tune specific key with global key', () => {
 			const abc = `X:1\nT:Jigs 1 - Som jigs\nK:G\nP:A\nT:A tune\nK:A\n% ...\nabcdef\nX:2`;
 
-			const folder = await sut('Test folder', abc);
+			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].content[0].abc).not.toContain('K:G');
 		});
 
-		it('extracts tags from tune-level headers', async () => {
+		it('extracts tags from tune-level headers', () => {
 			const abc = `X:1\nT:Jigs 1 - Som jigs\nP:A\nT:A tune\nG:English\n% ...\nabcdef\nX:2`;
 
-			const folder = await sut('Test folder', abc);
+			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].tags).toEqual(['English']);
+		});
+	});
+
+	describe('addNextPreviousSlugs', () => {
+		const sut = addNextPreviousSlugs;
+
+		it('adds next and previous slugs to sets', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2\nT: Jigs 2 - test\nP:A\nT:Another tune\n% ...\nabcdef\nX:3\nT: Jigs 3 - mor choon\nP:A\nT:Yet another tune\n% ...\nabcdef`;
+			const folder = generateFolderFromMultiSetAbcString('Test folder', abc);
+
+			const result = sut(folder);
+
+			expect(result.content[0].content[1].nextSlug).toEqual('Jigs-3-mor-choon');
+			expect(result.content[0].content[1].previousSlug).toEqual('Jigs-1-Som-jigs');
+		});
+
+		it('previous set for first tune wraps to end', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2\nT: Jigs 2 - test\nP:A\nT:Another tune\n% ...\nabcdef\nX:3\nT: Jigs 3 - mor choon\nP:A\nT:Yet another tune\n% ...\nabcdef`;
+			const folder = generateFolderFromMultiSetAbcString('Test folder', abc);
+
+			const result = sut(folder);
+
+			expect(result.content[0].content[0].previousSlug).toEqual('Jigs-3-mor-choon');
+		});
+
+		it('next set for last tune wraps to start', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2\nT: Jigs 2 - test\nP:A\nT:Another tune\n% ...\nabcdef\nX:3\nT: Jigs 3 - mor choon\nP:A\nT:Yet another tune\n% ...\nabcdef`;
+			const folder = generateFolderFromMultiSetAbcString('Test folder', abc);
+
+			const result = sut(folder);
+
+			expect(result.content[0].content[2].nextSlug).toEqual('Jigs-1-Som-jigs');
+		});
+
+		it('crosses section boundaries', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nG:Show set\nP:A\nT:A tune\n% ...\nabcdef\nX:2\nT: Jigs 2 - test\nP:A\nT:Another tune\n% ...\nabcdef\nX:3\nT: Reels 3 - mor choon\nP:A\nT:Yet another tune\n% ...\nabcdef`;
+			const folder = generateFolderFromMultiSetAbcString('Test folder', abc);
+
+			const result = sut(folder);
+
+			expect(result.content[1].content[0].nextSlug).toEqual('Jigs-1-Som-jigs');
+			expect(result.content[1].content[0].previousSlug).toEqual('Jigs-2-test');
+			expect(result.content[0].content[1].nextSlug).toEqual('Reels-3-mor-choon');
 		});
 	});
 }

@@ -21,3 +21,6 @@ export type Tune = {
 	slug: string;
 	abc: string;
 };
+
+export type AddSetProps<Props> = Folder & { content: { content: Props[] }[] };
+export type Clef = 'treble' | 'bass';

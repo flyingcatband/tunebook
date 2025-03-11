@@ -6,9 +6,17 @@
 	import { tick, untrack } from 'svelte';
 	let dots: HTMLDivElement | undefined = $state();
 	interface Props {
-		visualTranspose?: number;
+		/** The number of semitones to transpose all tunes by
+		 *
+		 * For example, to make a Bb folder, set this to 2
+		 * and to make a Eb folder, set this to -3
+		 */
+		globalTransposition?: number;
+		/** The number of semitones to transpose this tune by */
 		tuneOffset: Writable<number>;
+		/** The ABC for the tune you want to display */
 		abc: string;
+		/** The font family to use for text rendered as part of the ABC */
 		fontFamily?: string | undefined;
 		staffwidth?: number | undefined;
 		tunesContainer?: Element | undefined;
@@ -21,7 +29,7 @@
 	}
 
 	let {
-		visualTranspose = 0,
+		globalTransposition = 0,
 		tuneOffset,
 		abc,
 		fontFamily = undefined,
@@ -71,8 +79,19 @@
 	// Normalize repeats to start at the beginning of a line rather than the end of the previous line
 	// abcjs displays repeats where written in the abc, so it looks weird if we don't do this
 	let amendedAbc = $derived(abc.replace(/\|: *\n/g, '||\n|:').replace(/::.*\n/g, ':|\n|:'));
-	// TODO might be nice to say what these mean eg +2 = for B♭ instruments
-	let transpose_summary = $derived(`Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset}`);
+	let tuneOffsetMagnitude = $derived((($tuneOffset % 12) + 12) % 12);
+	let transposeName = $derived(
+		globalTransposition === 0
+			? tuneOffsetMagnitude === 2
+				? '(for B♭ instruments)'
+				: tuneOffsetMagnitude === 9
+					? '(for E♭ instruments)'
+					: ''
+			: ''
+	);
+	let transpose_summary = $derived(
+		`Transposed ${$tuneOffset > 0 ? '+' : ''}${$tuneOffset} ${transposeName}`.trim()
+	);
 	let moreAmendedAbc = $derived(
 		showTransposition && $tuneOffset !== 0
 			? amendedAbc.replace(
@@ -100,7 +119,7 @@
 							wordsfont: `${fontFamily} ${fontSize}`
 						}
 					: {},
-				visualTranspose: visualTranspose + $tuneOffset,
+				visualTranspose: globalTransposition + $tuneOffset,
 				selectTypes: false,
 				responsive: 'resize',
 				// This makes typescript happy that staffwidth is not undefined
