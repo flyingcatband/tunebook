@@ -1,8 +1,10 @@
 import { json } from '@sveltejs/kit';
-import { generateFolderFromLatex } from '$lib/server/folderGeneration.js';
+import { addNextPreviousSlugs, generateFolderFromLatex } from '$lib/server/folderGeneration.js';
 
 export const prerender = true;
 
 export function GET(): Promise<Response> {
-	return generateFolderFromLatex('Demo folder', './data/folder.tex').then(json);
+	return generateFolderFromLatex('Demo folder', './data/folder.tex')
+		.then(addNextPreviousSlugs)
+		.then(json);
 }
