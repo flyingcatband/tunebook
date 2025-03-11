@@ -50,23 +50,46 @@
 
 {@render children?.({ visibleSections })}
 
-<style lang="postcss">
+<style>
 	ul {
-		@apply p-2 mx-auto;
+		padding: 0.5rem;
+		margin: 0 auto;
 		display: grid;
-		@apply grid-cols-2 sm:grid-cols-3 md:grid-cols-4 grid-flow-row w-fit gap-x-6;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1.5rem;
+		list-style-type: none;
+		text-align: center;
+		width: fit-content;
+	}
+	@media (min-width: 640px) {
+		ul {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+	@media (min-width: 768px) {
+		ul {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
 	}
 	.buttons {
-		@apply flex gap-2 flex-wrap mx-auto max-w-[90vw] justify-center;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+		margin: 0 auto;
+		max-width: 90vw;
 	}
 	input[type='checkbox'] {
-		@apply mr-1;
+		margin-right: 0.25rem;
 	}
 	h2 {
-		@apply text-center mt-4 -mb-3;
+		text-align: center;
+		margin-top: 1rem;
+		margin-bottom: -0.75rem;
 	}
 	li {
-		@apply my-2;
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
 	}
 	label {
 		user-select: none;
