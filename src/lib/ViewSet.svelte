@@ -34,7 +34,7 @@
 		 * You might want to do this if you have the same set appearing in multiple
 		 * tunebooks on the same domain, and with different settings.
 		 * */
-		settingsPrefix?: string;
+		settingsScope?: string;
 		children: Snippet;
 	}
 
@@ -46,7 +46,7 @@
 		showClefSwitcher = false,
 		displayAbcFields = 'TNC',
 		preventWakelock = false,
-		settingsPrefix = ''
+		settingsScope = ''
 	}: Props = $props();
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
@@ -57,15 +57,15 @@
 	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
 	let slotFilled = $derived(children !== undefined);
 	let notesBeside = $derived(
-		keyedLocalStorage(`${settingsPrefix}${set.slug}_${orientation}_notesBeside`, false)
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesBeside`, false)
 	);
 
 	let notesHidden = $derived(
-		keyedLocalStorage(`${settingsPrefix}${set.slug}_${orientation}_notesHidden`, false)
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesHidden`, false)
 	);
 	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
 	let clef: Writable<Clef | 'global'> = $derived(
-		keyedLocalStorage(`${settingsPrefix}${set.slug}_clef`, 'global')
+		keyedLocalStorage(`${settingsScope}${set.slug}_clef`, 'global')
 	);
 	let preservedFieldRegex = $derived(
 		new RegExp(
@@ -115,7 +115,7 @@
 					div = value;
 				},
 				originalKey: abcDetails?.getKeySignature(),
-				offset: keyedLocalStorage(`${settingsPrefix}${set.slug}_${tune.slug}_offset`, 0)
+				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0)
 			};
 		})
 	);
@@ -124,11 +124,11 @@
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
 	let autozoomEnabled = $derived(
-		keyedLocalStorage(`${settingsPrefix}${set.slug}_${orientation}_autozoom`, true)
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_autozoom`, true)
 	);
 
 	let maxWidth = $derived(
-		keyedLocalStorage(`${settingsPrefix}${set.slug}_${orientation}_maxWidth`, 95)
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, 95)
 	);
 	$effect(() => maxWidth.subscribe(() => untrack(() => $refreshVisibility++)));
 
