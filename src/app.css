@@ -1,7 +1,7 @@
 html {
 	font-family: sans-serif;
-	--set-preview-width: 25rem;
-	--accent-color: #2e865f;
+	--set-preview-width: 20rem;
+	--accent-color: #065f46;
 	--text-on-accent: white;
 	accent-color: var(--accent-color);
 }

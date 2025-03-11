@@ -52,13 +52,7 @@
 	}
 	h2 {
 		text-align: center;
-	}
-
-	p.transpose {
-		margin: 0 auto;
-		width: fit-content;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
+		margin-top: 1rem;
+		margin-bottom: 0.25rem;
 	}
 </style>

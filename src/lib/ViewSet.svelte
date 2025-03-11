@@ -408,9 +408,6 @@
 		display: none;
 	}
 
-	.original-key {
-		display: inline-block;
-	}
 	.zeroHeightIfOverflowing.visible-false {
 		height: 0;
 	}
