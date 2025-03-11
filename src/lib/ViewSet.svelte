@@ -9,7 +9,14 @@
 	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
+	import { onMount } from 'svelte';
 
+	onMount(async () => {
+		if (!customElements.get('drab-wakelock')) {
+			const { WakeLock } = await import('drab/wakelock');
+			customElements.define('drab-wakelock', WakeLock);
+		}
+	});
 	interface Props {
 		folderName?: string;
 		set: Set;
@@ -17,6 +24,7 @@
 		displayAbcFields?: string;
 		showClefSwitcher?: boolean;
 		children: Snippet;
+		preventWakelock?: boolean;
 	}
 
 	let {
@@ -25,7 +33,8 @@
 		set,
 		fontFamily,
 		showClefSwitcher = false,
-		displayAbcFields = 'TNC'
+		displayAbcFields = 'TNC',
+		preventWakelock = false
 	}: Props = $props();
 
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
@@ -191,6 +200,9 @@
 	<title>{set?.name} | {folderName}</title>
 </svelte:head>
 
+{#if !preventWakelock}
+	<drab-wakelock locked auto-lock></drab-wakelock>
+{/if}
 <svelte:window bind:innerHeight bind:innerWidth />
 
 <div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
