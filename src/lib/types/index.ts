@@ -1,26 +1,30 @@
-export type Folder = {
+export interface Folder<S extends Set<Tune> = Set<Tune>> {
 	name: string;
-	content: Section[];
-};
+	content: Section<S>[];
+}
 
-export type Section = {
+export interface Section<S extends Set<Tune> = Set<Tune>> {
 	name: string;
-	content: Set[];
-};
+	content: S[];
+}
 
-export type Set = {
+export interface Set<T extends Tune = Tune> {
 	name?: string;
 	slug: string;
 	notes: string[];
-	content: Tune[];
+	content: T[];
 	tags: string[];
-};
+}
 
-export type Tune = {
+export interface SetWithNextPrev<T extends Tune = Tune> extends Set<T> {
+	nextSlug: string;
+	previousSlug: string;
+}
+
+export interface Tune {
 	filename: string;
 	slug: string;
 	abc: string;
-};
+}
 
-export type AddSetProps<Props> = Folder & { content: { content: Props[] }[] };
 export type Clef = 'treble' | 'bass';

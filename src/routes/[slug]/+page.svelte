@@ -4,7 +4,11 @@
 	let set = $derived(data.set);
 </script>
 
-<button onclick={() => history.back()}>Back</button>
+<nav>
+	<a class="button" href="/">All sets</a>
+	<a class="button" href="/{set.previousSlug}">Previous set</a>
+	<a class="button" href="/{set.nextSlug}">Next set</a>
+</nav>
 <ViewSet
 	{set}
 	folderName={data.folder.name}
@@ -34,11 +38,13 @@
 		margin-bottom: 1rem;
 	}
 
-	button {
+	nav {
 		position: fixed;
 		z-index: 20;
 		left: 0.75rem;
 		top: 0.75rem;
+		display: flex;
+		gap: 0.6rem;
 	}
 	p.notes {
 		font-style: italic;

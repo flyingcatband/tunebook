@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 import slugify from 'slugify';
-import type { AddSetProps, Folder, Section, Set } from '$lib/types/index.js';
+import type { Folder, Section, Set, SetWithNextPrev, Tune } from '$lib/types/index.js';
 
 export async function generateFolderFromLatex(
 	folderName: string,
@@ -59,9 +59,9 @@ export async function generateFolderFromLatex(
 	return folder;
 }
 
-export function addNextPreviousSlugs(
-	folder: Folder
-): AddSetProps<{ nextSlug: string; previousSlug: string }> {
+export function addNextPreviousSlugs<T extends Tune, S extends Set<T>>(
+	folder: Folder<S>
+): Folder<S & SetWithNextPrev<T>> {
 	const allSets = folder.content.flatMap((section) => section.content);
 	return {
 		...folder,

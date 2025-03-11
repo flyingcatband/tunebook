@@ -30,7 +30,8 @@ h2 {
 	font-size: 1.5rem;
 }
 
-button {
+button,
+.button {
 	cursor: pointer;
 	background-color: var(--accent-color);
 	color: var(--text-on-accent);
@@ -40,19 +41,26 @@ button {
 	border: none;
 }
 
-button:hover {
+button:hover,
+.button:hover {
 	background-color: rgba(46, 134, 95, 0.8);
 }
 
-button:disabled {
+button:disabled,
+.button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
 
 button:focus-visible,
+.button:focus-visible,
 select:focus-visible {
 	outline: 2px solid var(--accent-color);
 	outline-offset: 2px;
+}
+
+a.button {
+	text-decoration: none;
 }
 
 body {
