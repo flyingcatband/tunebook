@@ -18,13 +18,24 @@
 		}
 	});
 	interface Props {
+		/** The name of the tunebook you're displaying, used in the page title */
 		folderName?: string;
+		/** The Set to display */
 		set: Set;
+		/** Optionally a custom font to use in the rendered music */
 		fontFamily?: string;
+		/** Optionally specify which ABC information header fields to display */
 		displayAbcFields?: string;
+		/** Whether to show a clef switcher alongside the other controls */
 		showClefSwitcher?: boolean;
-		children: Snippet;
+		/** Whether to keep the device screen on when viewing the set */
 		preventWakelock?: boolean;
+		/** Use this to scope the settings for the set (key, clef, transposition, zoom level etc)
+		 * You might want to do this if you have the same set appearing in multiple
+		 * tunebooks on the same domain, and with different settings.
+		 * */
+		settingsScope?: string;
+		children: Snippet;
 	}
 
 	let {
@@ -34,9 +45,9 @@
 		fontFamily,
 		showClefSwitcher = false,
 		displayAbcFields = 'TNC',
-		preventWakelock = false
+		preventWakelock = false,
+		settingsScope = ''
 	}: Props = $props();
-
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
 	}
@@ -45,10 +56,17 @@
 		innerWidth: number = $state(0);
 	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
 	let slotFilled = $derived(children !== undefined);
-	let notesBeside = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesBeside`, false));
-	let notesHidden = $derived(keyedLocalStorage(`${set.slug}_${orientation}_notesHidden`, false));
+	let notesBeside = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesBeside`, false)
+	);
+
+	let notesHidden = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesHidden`, false)
+	);
 	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
-	let clef: Writable<Clef | 'global'> = $derived(keyedLocalStorage(`${set.slug}_clef`, 'global'));
+	let clef: Writable<Clef | 'global'> = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_clef`, 'global')
+	);
 	let preservedFieldRegex = $derived(
 		new RegExp(
 			`^[XKML${displayAbcFields
@@ -97,7 +115,7 @@
 					div = value;
 				},
 				originalKey: abcDetails?.getKeySignature(),
-				offset: keyedLocalStorage(`${set.slug}_${tune.slug}_offset`, 0)
+				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0)
 			};
 		})
 	);
@@ -105,9 +123,13 @@
 	let tunesContainer: Element | undefined = $state();
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
-	let autozoomEnabled = $derived(keyedLocalStorage(`${set.slug}_${orientation}_autozoom`, true));
+	let autozoomEnabled = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_autozoom`, true)
+	);
 
-	let maxWidth = $derived(keyedLocalStorage(`${set.slug}_${orientation}_maxWidth`, 95));
+	let maxWidth = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, 95)
+	);
 	$effect(() => maxWidth.subscribe(() => untrack(() => $refreshVisibility++)));
 
 	let visible = $state([...Array(set.content.length)]);
