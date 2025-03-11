@@ -129,13 +129,46 @@ test('transposition summary recognises Bb/Eb', async ({ page }) => {
 	await expect(transpositionSubtitle).toBeVisible();
 
 	await page.goto('/');
-	await page.getByText('Make the folder B♭').click();
+	// Make sure the button press actually registers and the value is persisted
+	// before we navigate
+	await expect
+		.poll(async () => {
+			await page.getByText('Make the folder B♭').click();
+			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
+		})
+		.toBe('2');
 
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 	await expect(page.getByText('Transposed -3')).toBeVisible();
 	await expect(page.getByText('(for E♭ instruments)')).not.toBeVisible();
+});
+
+test('transposition selection quotes correct keys when globally transposed', async ({ page }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+
+	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('E (+2)');
+
+	await page.goto('/');
+	// Make sure the button press actually registers and the value is persisted
+	// before we navigate
+	await expect
+		.poll(async () => {
+			await page.getByText('Make the folder B♭').click();
+			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
+		})
+		.toBe('2');
+
+	await page.goto('/Jigs-1-Severn-Stars');
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	// In the original implementation, the transposition selection would show 'E
+	// (+2)' here since the labels ignored the global transpotition. This meant
+	// the labels didn't match the actual key shown in the ABC.
+	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('F♯ (+2)');
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
