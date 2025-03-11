@@ -30,7 +30,7 @@
 <a href={basePath + set.slug}>
 	<div class="set-preview">
 		{#if set.name != undefined && headingTy}
-			<svelte:element this={headingTy}>{set.name}</svelte:element>
+			<svelte:element this={headingTy} class="set-title">{set.name}</svelte:element>
 		{/if}
 		{#if set.tags.length}
 			<ul class="tag-list">
@@ -48,7 +48,7 @@
 	</div>
 </a>
 
-<style lang="postcss">
+<style>
 	a {
 		text-decoration: none;
 		color: inherit;
@@ -72,11 +72,18 @@
 	}
 	.tag {
 		width: fit-content;
+		font-size: 0.8em;
 		border: 1px solid var(--accent-color);
 		background-color: var(--accent-color);
 		color: var(--text-on-accent);
 		font-weight: bold;
 		padding: 0.25rem 0.75rem;
 		border-radius: 0.375rem;
+	}
+	.set-title {
+		margin: 0.2em 0 0.5em;
+	}
+	p {
+		margin: 0.2em 0;
 	}
 </style>
