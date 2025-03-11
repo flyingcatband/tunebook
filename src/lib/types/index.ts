@@ -16,7 +16,7 @@ export interface Set<T extends Tune = Tune> {
 	tags: string[];
 }
 
-export interface SetWithNextPrev<T extends Tune = Tune> extends Set<T> {
+export interface NextPreviousSlugs {
 	nextSlug: string;
 	previousSlug: string;
 }
