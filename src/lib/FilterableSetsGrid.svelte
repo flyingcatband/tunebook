@@ -14,6 +14,8 @@
 		displayAbcFields?: string | undefined;
 		/** Should the set-level text notes be displayed? */
 		showNotes?: boolean | undefined;
+		/** Should the set-level tags be displayed? */
+		showTags?: boolean | undefined;
 		/**
 		 * The base path for the links to sets Set this if you have a base path
 		 * for the site e.g. 'tunes/' if the tunebook is hosted at
@@ -28,6 +30,7 @@
 		filtersTitle = undefined,
 		displayAbcFields = undefined,
 		showNotes = undefined,
+		showTags = undefined,
 		basePath = undefined
 	}: Props = $props();
 </script>
@@ -37,7 +40,7 @@
 		<div class="set-list">
 			{#each visibleSections as section}
 				{#each section.content as set}
-					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {basePath} />
+					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
 				{/each}
 			{/each}
 		</div>
