@@ -18,8 +18,7 @@ test('index page can be filtered', async ({ page }) => {
 	await expect(reel).toBeVisible();
 	await expect(jig).toBeVisible();
 
-	// Uncheck the checkbox
-	await page.getByText('Reels', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Reels' }).uncheck();
 	await expect(reel).not.toBeVisible();
 	await expect(jig).toBeVisible();
 });
@@ -31,12 +30,11 @@ test('index page can be filtered to show only core tunes', async ({ page }) => {
 	await expect(reel).toBeVisible();
 	await expect(jig).toBeVisible();
 
-	// Uncheck the checkbox
-	await page.getByText('Show only core tunes', { exact: true }).tap();
+	await page.getByRole('button', { name: 'Show only core tunes' }).tap();
 	await expect(reel).not.toBeVisible();
 	await expect(jig).toBeVisible();
 
-	await page.getByText('Show all tunes', { exact: true }).tap();
+	await page.getByRole('button', { name: 'Show all tunes' }).tap();
 	await expect(reel).toBeVisible();
 	await expect(jig).toBeVisible();
 });
@@ -44,7 +42,7 @@ test('index page can be filtered to show only core tunes', async ({ page }) => {
 test('index page remembers filters', async ({ page }) => {
 	await page.goto('/');
 
-	await page.getByText('Reels', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Reels' }).uncheck();
 	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
 	const jig = page.getByText('Seven Stars', { exact: true });
 	await expect(reel).not.toBeVisible();
@@ -54,7 +52,7 @@ test('index page remembers filters', async ({ page }) => {
 	await expect(reel).not.toBeVisible();
 	await expect(jig).toBeVisible();
 
-	await page.getByText('Jigs', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Jigs' }).uncheck();
 	await expect(reel).not.toBeVisible();
 	await expect(jig).not.toBeVisible();
 
@@ -249,9 +247,10 @@ test('transposition summary recognises Bb/Eb', async ({ page }) => {
 	await page.goto('/');
 	// Make sure the button press actually registers and the value is persisted
 	// before we navigate
+
 	await expect
 		.poll(async () => {
-			await page.getByText('Make the folder B♭').click();
+			await page.getByRole('button', { name: 'Make the folder B♭' }).click();
 			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
 		})
 		.toBe('2');
@@ -276,7 +275,7 @@ test('transposition selection quotes correct keys when globally transposed', asy
 	// before we navigate
 	await expect
 		.poll(async () => {
-			await page.getByText('Make the folder B♭').click();
+			await page.getByRole('button', { name: 'Make the folder B♭' }).click();
 			return await page.evaluate(() => window.localStorage.getItem('globalTransposition'));
 		})
 		.toBe('2');

@@ -25,7 +25,7 @@
 <GlobalTranspositionButtons showClefSwitcher />
 
 <div class="filterable-sets-grid">
-	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" {isSetVisible}>
+	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" {isSetVisible} hideSectionNames>
 		{#if $coreTunesOnly}
 			<button onclick={() => ($coreTunesOnly = false)}>Show all tunes</button>
 		{:else}
