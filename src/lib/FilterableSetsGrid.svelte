@@ -65,7 +65,6 @@
 		{:else}
 			<div class="set-list">
 				{#each visibleSections as section}
-					{#if !hideSectionNames}<h2>{section.name}</h2>{/if}
 					{#each section.content as set}
 						{#if isSetVisible(set)}
 							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
