@@ -47,24 +47,14 @@
 	>.
 </p>
 
-<style lang="postcss">
-	.filterable-sets-grid {
-		margin: 0 auto;
-	}
+<style>
 	p {
 		max-width: 65ch;
 		margin: 1rem auto 1.5rem;
 		font-size: 1.125rem;
 		line-height: 140%;
 	}
-	h1 {
-		margin-top: 1rem;
-	}
-	h2 {
-		text-align: center;
-		margin-top: 1rem;
-		margin-bottom: 0.25rem;
-	}
+
 	button {
 		margin-inline: auto;
 		margin-block: 0.5rem;
