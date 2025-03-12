@@ -11,6 +11,8 @@
 		tuneFont?: string | undefined;
 		/** The title to display above the filter checkboxes */
 		filtersTitle?: string | undefined;
+		/** Whether to hide the names of sections in the grid */
+		hideSectionNames?: boolean | undefined;
 		/** A list of ABC headers to display, specified as a string (e.g. 'TCBN') */
 		displayAbcFields?: string | undefined;
 		/** Should the set-level text notes be displayed? */
@@ -39,6 +41,7 @@
 		displayAbcFields = undefined,
 		showNotes = undefined,
 		showTags = undefined,
+		hideSectionNames = false,
 		basePath = undefined,
 		isSetVisible = () => true,
 		children: myChildren = undefined
@@ -48,15 +51,29 @@
 <FilterSets {folder} {filtersTitle}>
 	{#snippet children({ visibleSections })}
 		{@render myChildren?.()}
-		<div class="set-list">
+		{#if !hideSectionNames}
 			{#each visibleSections as section}
-				{#each section.content as set}
-					{#if isSetVisible(set)}
-						<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
-					{/if}
-				{/each}
+				<h2>{section.name}</h2>
+				<div class="set-list">
+					{#each section.content as set}
+						{#if isSetVisible(set)}
+							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+						{/if}
+					{/each}
+				</div>
 			{/each}
-		</div>
+		{:else}
+			<div class="set-list">
+				{#each visibleSections as section}
+					{#if !hideSectionNames}<h2>{section.name}</h2>{/if}
+					{#each section.content as set}
+						{#if isSetVisible(set)}
+							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+						{/if}
+					{/each}
+				{/each}
+			</div>
+		{/if}
 	{/snippet}
 </FilterSets>
 
