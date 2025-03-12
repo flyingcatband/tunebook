@@ -29,7 +29,7 @@
 	</p>
 </ViewSet>
 
-<style lang="postcss">
+<style>
 	p {
 		margin-top: 0.5rem;
 	}

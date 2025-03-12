@@ -352,7 +352,7 @@
 	</button>
 {/if}
 
-<style lang="postcss">
+<style>
 	.toggle-controls {
 		position: absolute;
 		top: 0;

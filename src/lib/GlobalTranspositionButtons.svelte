@@ -18,7 +18,7 @@
 	}
 </script>
 
-<p>
+<div>
 	<button onclick={() => ($globalTransposition = 2)}>Make the folder B♭</button>
 	<button onclick={() => ($globalTransposition = 0)}>Make the folder C</button>
 	<button onclick={() => ($globalTransposition = -3)}>Make the folder E♭</button>
@@ -27,10 +27,10 @@
 			{$globalClef === 'treble' ? 'Switch to bass clef' : 'Switch to treble clef'}
 		</button>
 	{/if}
-</p>
+</div>
 
 <style>
-	p {
+	div {
 		margin: 0 auto;
 		width: fit-content;
 		display: flex;
