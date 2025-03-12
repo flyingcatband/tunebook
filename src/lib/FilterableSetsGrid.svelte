@@ -1,7 +1,8 @@
 <script lang="ts">
 	import FilterSets from '$lib/FilterSets.svelte';
 	import SetPreview from '$lib/SetPreview.svelte';
-	import type { Folder } from './types/index.js';
+	import type { Snippet } from 'svelte';
+	import type { Folder, Set } from './types/index.js';
 
 	interface Props {
 		/** The folder to display sets from */
@@ -22,6 +23,13 @@
 		 * 'https://example.com/tunes/'
 		 */
 		basePath?: string | undefined;
+		/** A function to determine if a set should be visible.
+		 *
+		 * This is additional filtering on top of the filter by section checkboxes
+		 */
+		isSetVisible?: (set: Set) => boolean;
+		/** Additional controls to add before the list of sets */
+		children?: Snippet;
 	}
 
 	let {
@@ -31,16 +39,21 @@
 		displayAbcFields = undefined,
 		showNotes = undefined,
 		showTags = undefined,
-		basePath = undefined
+		basePath = undefined,
+		isSetVisible = () => true,
+		children: myChildren = undefined
 	}: Props = $props();
 </script>
 
 <FilterSets {folder} {filtersTitle}>
 	{#snippet children({ visibleSections })}
+		{@render myChildren?.()}
 		<div class="set-list">
 			{#each visibleSections as section}
 				{#each section.content as set}
-					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+					{#if isSetVisible(set)}
+						<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+					{/if}
 				{/each}
 			{/each}
 		</div>

@@ -24,6 +24,23 @@ test('index page can be filtered', async ({ page }) => {
 	await expect(jig).toBeVisible();
 });
 
+test('index page can be filtered to show only core tunes', async ({ page }) => {
+	await page.goto('/');
+	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
+	const jig = page.getByText('Seven Stars', { exact: true });
+	await expect(reel).toBeVisible();
+	await expect(jig).toBeVisible();
+
+	// Uncheck the checkbox
+	await page.getByText('Show only core tunes', { exact: true }).tap();
+	await expect(reel).not.toBeVisible();
+	await expect(jig).toBeVisible();
+
+	await page.getByText('Show all tunes', { exact: true }).tap();
+	await expect(reel).toBeVisible();
+	await expect(jig).toBeVisible();
+});
+
 test('index page remembers filters', async ({ page }) => {
 	await page.goto('/');
 
