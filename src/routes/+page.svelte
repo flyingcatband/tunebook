@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { keyedLocalStorage } from '$lib';
 	import FilterableSetsGrid from '$lib/FilterableSetsGrid.svelte';
 	import GlobalTranspositionButtons from '$lib/GlobalTranspositionButtons.svelte';
+	import type { Set } from '$lib/types/index.js';
 
 	let { data } = $props();
+	let coreTunesOnly = keyedLocalStorage('coreTunesOnly', false);
+	let isSetVisible = (set: Set) => !$coreTunesOnly || set.tags.includes('core');
 </script>
 
 <svelte:head>
@@ -21,7 +25,13 @@
 <GlobalTranspositionButtons showClefSwitcher />
 
 <div class="filterable-sets-grid">
-	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" />
+	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" {isSetVisible}>
+		{#if $coreTunesOnly}
+			<button onclick={() => ($coreTunesOnly = false)}>Show all tunes</button>
+		{:else}
+			<button onclick={() => ($coreTunesOnly = true)}>Show only core tunes</button>
+		{/if}
+	</FilterableSetsGrid>
 </div>
 
 <p>
@@ -54,5 +64,10 @@
 		text-align: center;
 		margin-top: 1rem;
 		margin-bottom: 0.25rem;
+	}
+	button {
+		margin-inline: auto;
+		margin-block: 0.5rem;
+		display: block;
 	}
 </style>
