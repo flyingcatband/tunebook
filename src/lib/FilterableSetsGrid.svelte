@@ -51,7 +51,17 @@
 <FilterSets {folder} {filtersTitle}>
 	{#snippet children({ visibleSections })}
 		{@render myChildren?.()}
-		{#if !hideSectionNames}
+		{#if hideSectionNames}
+			<div class="set-list">
+				{#each visibleSections as section}
+					{#each section.content as set}
+						{#if isSetVisible(set)}
+							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+						{/if}
+					{/each}
+				{/each}
+			</div>
+		{:else}
 			{#each visibleSections as section}
 				<h2>{section.name}</h2>
 				<div class="set-list">
@@ -62,16 +72,6 @@
 					{/each}
 				</div>
 			{/each}
-		{:else}
-			<div class="set-list">
-				{#each visibleSections as section}
-					{#each section.content as set}
-						{#if isSetVisible(set)}
-							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
-						{/if}
-					{/each}
-				{/each}
-			</div>
 		{/if}
 	{/snippet}
 </FilterSets>
