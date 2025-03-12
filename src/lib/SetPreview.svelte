@@ -9,6 +9,8 @@
 		set: Set;
 		/** Should the set-level text notes be displayed? */
 		showNotes?: boolean;
+		/** Should the set-level tags be displayed? */
+		showTags?: boolean;
 		/** The font family to use for text rendered as part of the ABC */
 		tuneFont?: string | undefined;
 		/** A list of ABC headers to display, specified as a string (e.g. 'TCBN') */
@@ -21,6 +23,7 @@
 		basePath = '/',
 		set,
 		showNotes = true,
+		showTags = true,
 		tuneFont = undefined,
 		displayAbcFields = undefined,
 		headingTy = 'h2'
@@ -32,10 +35,10 @@
 		{#if set.name != undefined && headingTy}
 			<svelte:element this={headingTy} class="set-title">{set.name}</svelte:element>
 		{/if}
-		{#if set.tags.length}
+		{#if showTags && set.tags.length}
 			<ul class="tag-list">
 				{#each set.tags as tag}
-					<li class="tag">{tag}</li>
+					<li class="tag" data-tag={tag}>{tag}</li>
 				{/each}
 			</ul>
 		{/if}
