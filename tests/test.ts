@@ -18,8 +18,7 @@ test('index page can be filtered', async ({ page }) => {
 	await expect(reel).toBeVisible();
 	await expect(jig).toBeVisible();
 
-	// Uncheck the checkbox
-	await page.getByText('Reels', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Reels' }).uncheck();
 	await expect(reel).not.toBeVisible();
 	await expect(jig).toBeVisible();
 });
@@ -44,7 +43,7 @@ test('index page can be filtered to show only core tunes', async ({ page }) => {
 test('index page remembers filters', async ({ page }) => {
 	await page.goto('/');
 
-	await page.getByText('Reels', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Reels' }).uncheck();
 	const reel = page.getByText('The Old Morpeth Rant', { exact: true });
 	const jig = page.getByText('Seven Stars', { exact: true });
 	await expect(reel).not.toBeVisible();
@@ -54,7 +53,7 @@ test('index page remembers filters', async ({ page }) => {
 	await expect(reel).not.toBeVisible();
 	await expect(jig).toBeVisible();
 
-	await page.getByText('Jigs', { exact: true }).tap();
+	await page.getByRole('checkbox', { name: 'Jigs' }).uncheck();
 	await expect(reel).not.toBeVisible();
 	await expect(jig).not.toBeVisible();
 

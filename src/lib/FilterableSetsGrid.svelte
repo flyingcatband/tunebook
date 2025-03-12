@@ -2,7 +2,7 @@
 	import FilterSets from '$lib/FilterSets.svelte';
 	import SetPreview from '$lib/SetPreview.svelte';
 	import type { Snippet } from 'svelte';
-	import type { Folder, Set } from './types/index.js';
+	import type { Folder, Section, Set } from './types/index.js';
 
 	interface Props {
 		/** The folder to display sets from */
@@ -51,26 +51,25 @@
 <FilterSets {folder} {filtersTitle}>
 	{#snippet children({ visibleSections })}
 		{@render myChildren?.()}
+
+		{#snippet setsFrom(section: Section)}
+			{#each section.content as set}
+				{#if isSetVisible(set)}
+					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+				{/if}
+			{/each}
+		{/snippet}
+
 		{#if hideSectionNames}
 			<div class="set-list">
 				{#each visibleSections as section}
-					{#each section.content as set}
-						{#if isSetVisible(set)}
-							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
-						{/if}
-					{/each}
+					{@render setsFrom(section)}
 				{/each}
 			</div>
 		{:else}
 			{#each visibleSections as section}
 				<h2>{section.name}</h2>
-				<div class="set-list">
-					{#each section.content as set}
-						{#if isSetVisible(set)}
-							<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
-						{/if}
-					{/each}
-				</div>
+				<div class="set-list">{@render setsFrom(section)}</div>
 			{/each}
 		{/if}
 	{/snippet}
