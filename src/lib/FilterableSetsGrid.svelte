@@ -55,7 +55,15 @@
 		{#snippet setsFrom(section: Section)}
 			{#each section.content as set}
 				{#if isSetVisible(set)}
-					<SetPreview {set} {tuneFont} {displayAbcFields} {showNotes} {showTags} {basePath} />
+					<SetPreview
+						{set}
+						{tuneFont}
+						{displayAbcFields}
+						{showNotes}
+						{showTags}
+						{basePath}
+						headingTy={hideSectionNames ? 'h2' : 'h3'}
+					/>
 				{/if}
 			{/each}
 		{/snippet}
