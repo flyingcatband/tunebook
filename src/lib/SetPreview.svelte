@@ -57,7 +57,7 @@
 		color: inherit;
 	}
 	.set-preview {
-		padding: 1rem;
+		padding: var(--set-preview-padding, 0.5em);
 		width: var(--set-preview-width, 20rem);
 		text-align: center;
 		box-sizing: border-box;

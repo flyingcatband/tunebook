@@ -1,6 +1,7 @@
 :root {
 	font-family: sans-serif;
 	--set-preview-width: 20rem;
+	--set-preview-padding: 1em;
 	--accent-color: #065f46;
 	--text-on-accent: white;
 	accent-color: var(--accent-color);
