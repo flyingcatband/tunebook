@@ -355,3 +355,19 @@ test('first page remains unchanged upon return', async ({ page }) => {
 	await expect(thirdTune).not.toBeInViewport();
 	await expect(secondTune).toBeInViewport();
 });
+
+test('tune abc can be copied', async ({ page, context }) => {
+	await page.goto('/Jigs-1-Severn-Stars');
+	const tuneTitle = 'Upton upon Severn Stick Dance';
+	const tune = page.getByText(tuneTitle, { exact: true });
+
+	await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+	await expect(tune).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await page.locator('#copy-abc-upton-upon-severn').click();
+
+	const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
+	expect(clipboardContent).toContain('X:');
+	expect(clipboardContent).toContain(tuneTitle);
+});
