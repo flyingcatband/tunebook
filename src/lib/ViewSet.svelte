@@ -35,6 +35,8 @@
 		 * tunebooks on the same domain, and with different settings.
 		 * */
 		settingsScope?: string;
+		/** Optionally hide the button which allows users to copy the abc notation of each tune*/
+		hideCopyAbc?: boolean;
 		children: Snippet;
 	}
 
@@ -46,7 +48,8 @@
 		showClefSwitcher = false,
 		displayAbcFields = 'TNC',
 		preventWakelock = false,
-		settingsScope = ''
+		settingsScope = '',
+		hideCopyAbc = false
 	}: Props = $props();
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
@@ -310,6 +313,26 @@
 						class:hidden={hideControls}
 						onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
 					>
+					{#if !hideCopyAbc}
+						<button
+							id={`copy-${tune.slug}`}
+							class:hidden={hideControls}
+							onclick={async () => {
+								try {
+									await navigator.clipboard.writeText(tune.abc);
+									const thisButton = document.getElementById(`copy-${tune.slug}`);
+									if (thisButton != null) {
+										thisButton.textContent = 'Copied!';
+										setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
+									}
+								} catch (e) {
+									console.error(e);
+								}
+							}}
+						>
+							Copy ABC
+						</button>
+					{/if}
 					<Tune
 						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
 						globalTransposition={$globalTransposition}
