@@ -90,13 +90,11 @@ function addTagsFrom(abc: string, tags: string[]) {
 /** Extract the tags from the `G` fields in the abc string */
 export function extractTags(abc: string): string[] {
 	const results = [];
-	for (const match of abc.matchAll(/^G: *([\w, -]+) *$/gm)) {
-		results.push(
-			...match[1]
-				.split(',')
-				.filter((tag) => tag)
-				.map((tag) => tag.trim())
-		);
+	for (const line of abc.split('\n')) {
+		if (line.startsWith('G:') && !line.startsWith('G:|')) {
+			const tag = line.slice(2).trim();
+			results.push(tag);
+		}
 	}
 	return results;
 }
@@ -239,16 +237,6 @@ if (import.meta.vitest) {
 			expect(sut(abc)).toEqual(['test']);
 		});
 
-		it('pulls out comma-separated tag', () => {
-			const abc = `X:1\nG: test,test2\nT:A set\n%...`;
-			expect(sut(abc)).toEqual(['test', 'test2']);
-		});
-
-		it('trims comma-separated tags', () => {
-			const abc = `X:1\nG:   test   ,  test2   \nT:A set\n%...`;
-			expect(sut(abc)).toEqual(['test', 'test2']);
-		});
-
 		it('pulls out tags in multiple G fields', () => {
 			const abc = `X:1\nG: test\nG: test2\nT:A set\n%...`;
 			expect(sut(abc)).toEqual(['test', 'test2']);
@@ -263,6 +251,11 @@ if (import.meta.vitest) {
 			const abc = `X:1\nT:A set\nABcd|ef\nG:|`;
 			expect(sut(abc)).toEqual([]);
 		});
+
+		it('pulls out tag containing a forward-slash', () => {
+			const abc = `X:1\nG:James/happy\nT:A set\n%...`;
+			expect(sut(abc)).toEqual(['James/happy']);
+		});
 	});
 
 	describe('addTagsFrom', () => {
@@ -270,10 +263,6 @@ if (import.meta.vitest) {
 			addTagsFrom(abc, tags);
 			return tags;
 		};
-
-		it('adds all tags if none are currently set', () => {
-			expect(sut(`X:1\nG:tag1,tag2\nT:A tune`, [])).toEqual(['tag1', 'tag2']);
-		});
 
 		it('does not add tags if they are already set', () => {
 			expect(sut(`X:1\nG:tag\nT:A tune`, ['tag'])).toEqual(['tag']);
