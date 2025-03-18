@@ -56,9 +56,9 @@
 		margin: 0 auto;
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 1.5rem;
+		column-gap: 1.5rem;
 		list-style-type: none;
-		text-align: center;
+		text-align: left;
 		width: fit-content;
 	}
 	@media (min-width: 640px) {
