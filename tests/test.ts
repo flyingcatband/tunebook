@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { describe } from 'node:test';
+import fc from 'fast-check';
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
@@ -370,4 +372,111 @@ test('tune abc can be copied', async ({ page, context }) => {
 	const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
 	expect(clipboardContent).toContain('X:');
 	expect(clipboardContent).toContain(tuneTitle);
+});
+
+describe('properties', () => {
+	const TEST_TIMEOUT_MILLIS = 15_000;
+	// Set the playwright test timeout larger than the fast-check timeout
+	test.setTimeout(TEST_TIMEOUT_MILLIS * 3);
+	const propPageWidth = fc.noShrink(fc.integer({ min: 360, max: 2000 }));
+	const propPageHeight = fc.noShrink(fc.integer({ min: 800, max: 2000 }));
+	test('fitToPage always shows all tunes', async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+				await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+				await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+				await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+			}),
+			{
+				examples: [
+					[1992, 809],
+					[2000, 809]
+				],
+				timeout: TEST_TIMEOUT_MILLIS
+			}
+		);
+	});
+
+	const tuneTitlesAndPositions =
+		'[...document.querySelectorAll(".tune").values().map(t => [t.getBoundingClientRect(), t.querySelector("text[data-name=title]").textContent]).map(([rect, title]) => ({title, x: rect.x, y: rect.y, width: rect.width, height: rect.height}))]';
+
+	const zoomThenFitToPage = (page: Page, direction: 'in' | 'out') =>
+		fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+			await page.setViewportSize({ width, height });
+			const positionsBefore = await page.evaluate(tuneTitlesAndPositions);
+			await page.getByRole('button', { name: 'Show controls' }).click();
+			const zoomButton = page.getByRole('button', { name: `Zoom ${direction}` });
+
+			// Ensure the relevant button exists
+			if (!(await zoomButton.isEnabled())) {
+				await page.getByRole('button', { name: 'Hide controls' }).click();
+				fc.pre(false);
+			}
+
+			while (await zoomButton.isEnabled()) {
+				await zoomButton.click();
+			}
+
+			await page.getByRole('button', { name: 'Fit to page' }).click();
+			await page.getByRole('button', { name: 'Hide controls' }).click();
+			const positionsAfter = await page.evaluate(tuneTitlesAndPositions);
+			await expect(positionsBefore).toEqual(positionsAfter);
+		});
+
+	test(`fitToPage shows the same view after zooming all the way in`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(zoomThenFitToPage(page, 'in'), {
+			examples: [[1993, 805]],
+			timeout: TEST_TIMEOUT_MILLIS
+		});
+	});
+
+	test(`fitToPage shows the same view after zooming all the way out`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(zoomThenFitToPage(page, 'out'), {
+			examples: [[1993, 802]],
+			timeout: TEST_TIMEOUT_MILLIS
+		});
+	});
+
+	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+
+				await page.getByRole('button', { name: 'Show controls' }).click();
+				const zoomIn = page.getByRole('button', { name: `Zoom in` });
+				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
+				const originalWidth = await page.evaluate(tuneWidth);
+
+				// Ensure the relevant button exists
+				if (!(await zoomIn.isEnabled())) {
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+					fc.pre(false);
+				}
+
+				while ((await page.evaluate(tuneWidth)) <= originalWidth) {
+					if (await zoomIn.isEnabled()) {
+						await zoomIn.click();
+					} else {
+						break;
+					}
+				}
+				if ((await page.evaluate(tuneWidth)) <= originalWidth) {
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+					fc.pre(false);
+				}
+				await page.getByRole('button', { name: 'Hide controls' }).click();
+				await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+			}),
+			{
+				timeout: TEST_TIMEOUT_MILLIS
+			}
+		);
+	});
 });
