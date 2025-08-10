@@ -103,7 +103,12 @@
 
 	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
 
-	type ExtraTuneProps = { div?: Element; originalKey?: KeySignature; offset: Writable<number> };
+	type ExtraTuneProps = {
+		div?: Element;
+		originalKey?: KeySignature;
+		offset: Writable<number>;
+		aspectRatio?: number;
+	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
 		set.content.map((tune) => {
@@ -124,6 +129,8 @@
 	);
 
 	let tunesContainer: Element | undefined = $state();
+	let calculatingAspectRatio = $state(false);
+	let aspectRatiosCalculated = $state(false);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
 	let autozoomEnabled = $derived(
@@ -133,39 +140,6 @@
 	let maxWidth = $derived(
 		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, 95)
 	);
-	$effect(() => maxWidth.subscribe(() => untrack(() => $refreshVisibility++)));
-
-	let visible = $state([...Array(set.content.length)]);
-	let displayFrom = $state([0]);
-
-	$effect(() => {
-		untrack(() => (displayFrom = [0]));
-		visible = [...Array(set.content.length)];
-	});
-
-	$effect(() => {
-		let index = displayFrom.at(-1)!;
-		visible[index] = visible[index] || true;
-	});
-	let refreshVisibility = writable(0);
-	$effect(() => {
-		displayFrom && untrack(() => $refreshVisibility++);
-	});
-
-	// Don't allocate scroll space for hidden tunes but
-	// briefly add it back in when the zoom level or
-	// current page changes
-	let zeroHeightIfOverflowing = $state(true);
-	$effect(() => {
-		// react to refreshVisibility
-		$refreshVisibility;
-		(async () => {
-			zeroHeightIfOverflowing = false;
-			await tick();
-			await tick();
-			zeroHeightIfOverflowing = true;
-		})();
-	});
 
 	$effect(() => {
 		hideControls;
@@ -178,48 +152,57 @@
 		if (autoZooming || !BROWSER) {
 			return;
 		}
+		if (!aspectRatiosCalculated) {
+			calculatingAspectRatio = true;
+			await tick();
+			calculatingAspectRatio = false;
+			aspectRatiosCalculated = true;
+		}
 		if (!$autozoomEnabled) {
-			// We still want to make sure the tunes appear properly
-			$refreshVisibility++;
 			return;
 		}
 		autoZooming = true;
 
-		// Show the first page
-		displayFrom = [0];
-		await tick();
-		$refreshVisibility++;
-		await tick();
+		const availableWidth = tunesContainer?.clientWidth;
+		const availableHeight = tunesContainer?.clientHeight;
 
-		const div = tunes[0].div;
-		if (typeof div === 'undefined') {
+		if (!availableWidth || !availableHeight) {
 			autoZooming = false;
-			throw Error('div is undefined');
+			return;
 		}
 
-		// Zoom all the way in so we can no longer see all the tunes
-		while (
-			visible.every((vis) => vis) &&
-			div.getBoundingClientRect().bottom < innerHeight &&
-			$maxWidth < 95
-		) {
-			$maxWidth += 10;
-			await tick();
-		}
+		let bestMaxWidth = 0;
 
-		// Zoom out until we can see all the tunes, and the entirety of the first tune
-		// (First tune will always show, no matter whether it fits fully on the page,
-		// subsequent tunes won't be visible until they fit)
-		while (
-			(visible.some((vis) => !vis) || div.getBoundingClientRect().bottom > innerHeight) &&
-			$maxWidth > 20
-		) {
-			$maxWidth -= 5;
-			await tick();
-		}
+		for (let numColumns = 1; numColumns <= tunes.length; numColumns++) {
+			const columnWidth = availableWidth / numColumns;
+			let maxHeight = 0;
+			for (let i = 0; i < numColumns; i++) {
+				let columnHeight = 0;
+				for (let j = i; j < tunes.length; j += numColumns) {
+					const tune = tunes[j];
+					if (tune.aspectRatio) {
+						columnHeight += columnWidth / tune.aspectRatio;
+					}
+				}
+				maxHeight = Math.max(maxHeight, columnHeight);
+			}
 
+			if (maxHeight <= availableHeight) {
+				const currentMaxWidth = (columnWidth / availableWidth) * 100;
+				if (currentMaxWidth > bestMaxWidth) {
+					bestMaxWidth = currentMaxWidth;
+				}
+			} else {
+				// Tunes don't fit, so let's try making them narrower
+				const requiredWidth = (availableHeight / maxHeight) * columnWidth;
+				const currentMaxWidth = (requiredWidth / availableWidth) * 100;
+				if (currentMaxWidth > bestMaxWidth) {
+					bestMaxWidth = currentMaxWidth;
+				}
+			}
+		}
+		$maxWidth = bestMaxWidth;
 		autoZooming = false;
-		$maxWidth = $maxWidth;
 	}
 </script>
 
@@ -266,13 +249,11 @@
 				<button
 					onclick={() => {
 						$notesBeside = !$notesBeside;
-						$refreshVisibility++;
 					}}>Notes {$notesBeside ? 'below' : 'beside'}</button
 				>
 				<button
 					onclick={() => {
 						$notesHidden = !$notesHidden;
-						$refreshVisibility++;
 					}}>{$notesHidden ? 'Show' : 'Hide'} notes</button
 				>
 			{/if}
@@ -289,91 +270,86 @@
 
 	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth <= 50}>
 		{#each tunes as tune, i}
-			{#if i >= displayFrom[displayFrom.length - 1]}
-				<div
-					class="visible-{visible[i]} tune"
-					style="max-width: {$maxWidth}vw"
-					class:zeroHeightIfOverflowing
-					bind:this={tune.div}
+			<div class="tune" style="max-width: {$maxWidth}vw" bind:this={tune.div}>
+				{#if tune.originalKey}
+					<span class="original-key" class:hidden={hideControls}>
+						<KeySelect
+							transposition={tune.offset}
+							originalKey={tune.originalKey}
+							tuneSlug={tune.slug}
+						/></span
+					>
+				{/if}
+				<button
+					class:hidden={hideControls}
+					onclick={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
 				>
-					{#if tune.originalKey}
-						<span class="original-key" class:hidden={hideControls}>
-							<KeySelect
-								transposition={tune.offset}
-								originalKey={tune.originalKey}
-								tuneSlug={tune.slug}
-							/></span
-						>
-					{/if}
+				<button
+					class:hidden={hideControls}
+					onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
+				>
+				{#if !hideCopyAbc}
 					<button
+						id={`copy-${tune.slug}`}
 						class:hidden={hideControls}
-						onclick={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
-					>
-					<button
-						class:hidden={hideControls}
-						onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
-					>
-					{#if !hideCopyAbc}
-						<button
-							id={`copy-${tune.slug}`}
-							class:hidden={hideControls}
-							onclick={async () => {
-								try {
-									await navigator.clipboard.writeText(tune.abc);
-									const thisButton = document.getElementById(`copy-${tune.slug}`);
-									if (thisButton != null) {
-										thisButton.textContent = 'Copied!';
-										setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
-									}
-								} catch (e) {
-									console.error(e);
+						onclick={async () => {
+							try {
+								await navigator.clipboard.writeText(tune.abc);
+								const thisButton = document.getElementById(`copy-${tune.slug}`);
+								if (thisButton != null) {
+									thisButton.textContent = 'Copied!';
+									setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
 								}
-							}}
-						>
-							Copy ABC
-						</button>
-					{/if}
-					<Tune
-						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
-						globalTransposition={$globalTransposition}
-						tuneOffset={tune.offset}
-						bind:visible={visible[i]}
-						{refreshVisibility}
-						{fontFamily}
-						{tunesContainer}
-						onrerenderedAbc={fitToPage}
-					/>
-				</div>
-			{/if}
+							} catch (e) {
+								console.error(e);
+							}
+						}}
+					>
+						Copy ABC
+					</button>
+				{/if}
+				<Tune
+					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+					globalTransposition={$globalTransposition}
+					tuneOffset={tune.offset}
+					{fontFamily}
+					{tunesContainer}
+				/>
+			</div>
 		{/each}
 	</div>
+
+	{#if calculatingAspectRatio}
+		<div class="offscreen-tunes">
+			{#each tunes as tune, i}
+				<Tune
+					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+					globalTransposition={$globalTransposition}
+					tuneOffset={tune.offset}
+					{fontFamily}
+					onrerenderedAbc={async (tuneDiv) => {
+						const svg = tuneDiv?.getElementsByTagName('svg')?.[0];
+						if (svg) {
+							const viewBox = svg.getAttribute('viewBox');
+							if (viewBox) {
+								const [, , width, height] = viewBox.split(' ').map(parseFloat);
+								console.log(`Width & height for tune ${tune.slug}:`, width, height);
+								tune.aspectRatio = width / height;
+								if (tunes.every((t) => t.aspectRatio)) {
+									fitToPage();
+								}
+							}
+						}
+					}}
+				/>
+			{/each}
+		</div>
+	{/if}
 
 	{#if !$notesHidden}
 		<div class="notes-container">{@render children?.()}</div>
 	{/if}
 </div>
-
-{#if displayFrom.length > 1}
-	<button
-		onclick={() => {
-			window.scrollBy(0, -25);
-			displayFrom.pop();
-		}}
-		class="page back"
-		aria-label="Previous page"
-	>
-		<div></div>
-	</button>
-{/if}
-{#if !visible[visible.length - 1]}
-	<button
-		onclick={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
-		class="page next"
-		aria-label="Next page"
-	>
-		<div></div>
-	</button>
-{/if}
 
 <style>
 	.toggle-controls {
@@ -455,60 +431,13 @@
 	}
 
 	/* HIDING TUNES THAT AREN'T DISPLAYED */
-	.visible-null,
-	.visible-false {
-		visibility: hidden;
-	}
-	.visible-false {
-		overflow: hidden;
-	}
 	.hidden {
 		display: none;
 	}
 
-	.zeroHeightIfOverflowing.visible-false {
-		height: 0;
-	}
 	.tune {
 		margin: 0 auto;
 		width: 90%;
-	}
-
-	/* PAGE TURN BUTTONS */
-	button.page {
-		position: fixed;
-		bottom: 0;
-		height: 100%;
-		width: min(15%, 10vw);
-		border: none;
-		background: none;
-	}
-
-	button.back {
-		left: 0;
-	}
-
-	button.next {
-		right: 0;
-	}
-
-	button.page div {
-		width: 0;
-		height: 0;
-		border-top: 30px solid transparent;
-		border-bottom: 30px solid transparent;
-	}
-
-	button.page.back div {
-		border-right: 30px solid lightgray;
-		position: absolute;
-		left: 0.5em;
-	}
-
-	button.page.next div {
-		border-left: 30px solid lightgray;
-		position: absolute;
-		right: 0.5em;
 	}
 
 	p {
