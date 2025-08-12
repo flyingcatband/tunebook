@@ -291,7 +291,7 @@ test('transposition selection quotes correct keys when globally transposed', asy
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	page.setViewportSize({ width: 1600, height: 1000 });
+	page.setViewportSize({ width: 1600, height: 1200 });
 	const secondTune = page.getByText('The Silver Spear', { exact: true });
 	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
 	await page.goto('/Reels-1-Some-reels');
@@ -406,6 +406,7 @@ describe('properties', () => {
 	const zoomThenFitToPage = (page: Page, direction: 'in' | 'out') =>
 		fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
 			await page.setViewportSize({ width, height });
+			await expect(page.getByRole('img').first()).toBeInViewport();
 			const positionsBefore = await page.evaluate(tuneTitlesAndPositions);
 			await page.getByRole('button', { name: 'Show controls' }).click();
 			const zoomButton = page.getByRole('button', { name: `Zoom ${direction}` });
@@ -422,6 +423,7 @@ describe('properties', () => {
 
 			await page.getByRole('button', { name: 'Fit to page' }).click();
 			await page.getByRole('button', { name: 'Hide controls' }).click();
+			await expect(page.getByRole('img').first()).toBeInViewport();
 			const positionsAfter = await page.evaluate(tuneTitlesAndPositions);
 			await expect(positionsBefore).toEqual(positionsAfter);
 		});
@@ -475,7 +477,8 @@ describe('properties', () => {
 				await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
 			}),
 			{
-				timeout: TEST_TIMEOUT_MILLIS
+				timeout: TEST_TIMEOUT_MILLIS,
+				examples: [[363, 971]]
 			}
 		);
 	});

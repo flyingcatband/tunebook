@@ -5,18 +5,13 @@
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { tick, untrack, type Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
 	import { onMount } from 'svelte';
+	import { calculateMaximumWidth } from './fitting.js';
 
-	onMount(async () => {
-		if (!customElements.get('drab-wakelock')) {
-			const { WakeLock } = await import('drab/wakelock');
-			customElements.define('drab-wakelock', WakeLock);
-		}
-	});
 	interface Props {
 		/** The name of the tunebook you're displaying, used in the page title */
 		folderName?: string;
@@ -51,6 +46,25 @@
 		settingsScope = '',
 		hideCopyAbc = false
 	}: Props = $props();
+
+	onMount(async () => {
+		if (!customElements.get('drab-wakelock')) {
+			const { WakeLock } = await import('drab/wakelock');
+			customElements.define('drab-wakelock', WakeLock);
+		}
+
+		if (!BROWSER || !tunesContainer) return;
+
+		const resizeObserver = new ResizeObserver(() => {
+			fitToPage();
+		});
+
+		resizeObserver.observe(tunesContainer);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	});
 	if (!displayAbcFields.match(/^[A-Z]*$/)) {
 		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
 	}
@@ -62,6 +76,75 @@
 	let notesBeside = $derived(
 		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesBeside`, false)
 	);
+	let displayFrom: number[] = $state([0]);
+	let visible: boolean[] = $state(new Array(set.content.length).fill(false));
+
+	$effect(() => {
+		if (!hideControls) {
+			tunes.forEach((tune) => {
+				if (tune.div && tune.aspectRatio) {
+					const rect = tune.div.getBoundingClientRect();
+					const currentAspectRatio = rect.width / rect.height;
+					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
+				}
+			});
+		}
+	});
+
+	$effect(() => {
+		if ($autozoomEnabled) {
+			visible = new Array(tunes.length).fill(true);
+			untrack(fitToPage);
+		} else {
+			manuallyPaginate();
+		}
+	});
+
+	function manuallyPaginate() {
+		if (!BROWSER || !tunesContainer) {
+			return;
+		}
+
+		const availableWidth = tunesContainer.clientWidth;
+		const availableHeight = tunesContainer.clientHeight;
+		if (!availableWidth || !availableHeight) return;
+
+		// Max width is a percentage of the viewport width, so we need to convert it to pixels
+		const columnWidth = innerWidth * ($maxWidth / 100);
+		const numColumns = Math.max(1, Math.floor(availableWidth / columnWidth));
+
+		const newVisible = new Array(tunes.length).fill(false);
+		const columnHeights = new Array(numColumns).fill(0);
+		const startIndex = displayFrom.at(-1) ?? 0;
+		let columnIndex = 0;
+
+		for (let i = startIndex; i < tunes.length; i++) {
+			const tune = tunes[i];
+			const tuneHeight = columnWidth / tune.aspectRatio!;
+			if (i > startIndex && columnHeights[columnIndex] + tuneHeight > availableHeight) {
+				columnIndex++;
+			}
+
+			if (columnIndex >= numColumns) {
+				// No more columns available, so we can't display any more tunes
+				break;
+			}
+
+			if (columnHeights[columnIndex] + tuneHeight <= availableHeight) {
+				columnHeights[columnIndex] += tuneHeight;
+				newVisible[i] = true;
+			} else {
+				if (i === startIndex) {
+					newVisible[i] = true;
+				}
+				break;
+			}
+		}
+
+		if (JSON.stringify(visible) !== JSON.stringify(newVisible)) {
+			visible = newVisible;
+		}
+	}
 
 	let notesHidden = $derived(
 		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesHidden`, false)
@@ -108,11 +191,15 @@
 		originalKey?: KeySignature;
 		offset: Writable<number>;
 		aspectRatio?: number;
+		widthCorrectionFactor?: number;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
 		set.content.map((tune) => {
 			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
+			const svg = abcDetails?.engraver?.renderer.paper.svg;
+			const width = parseFloat(svg?.getAttribute('width') || '0');
+			const height = parseFloat(svg?.getAttribute('height') || '0');
 			let div = $state<Element>();
 			return {
 				...tune,
@@ -123,85 +210,59 @@
 					div = value;
 				},
 				originalKey: abcDetails?.getKeySignature(),
-				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0)
+				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0),
+				aspectRatio: width && height && width / height
 			};
 		})
 	);
 
 	let tunesContainer: Element | undefined = $state();
-	let calculatingAspectRatio = $state(false);
-	let aspectRatiosCalculated = $state(false);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
 	let autozoomEnabled = $derived(
 		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_autozoom`, true)
 	);
 
-	let maxWidth = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, 95)
+	let maxWidth: Writable<number | null> = $derived(
+		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, null)
 	);
 
-	$effect(() => {
-		hideControls;
-		orientation;
-		innerHeight && innerWidth && untrack(fitToPage);
-	});
-
 	let autoZooming = false;
+	$effect(() => {
+		tunes;
+		displayFrom = [0];
+	});
 	async function fitToPage() {
-		if (autoZooming || !BROWSER) {
-			return;
-		}
-		if (!aspectRatiosCalculated) {
-			calculatingAspectRatio = true;
-			await tick();
-			calculatingAspectRatio = false;
-			aspectRatiosCalculated = true;
-		}
-		if (!$autozoomEnabled) {
+		if (!$autozoomEnabled || autoZooming || !BROWSER) {
 			return;
 		}
 		autoZooming = true;
 
+		// Wait for the tunesContainer to have a height before calculating the best zoom level
+		await new Promise<void>((resolve) => {
+			let attempts = 0;
+			const interval = setInterval(() => {
+				if (tunesContainer && tunesContainer.clientHeight > 0) {
+					clearInterval(interval);
+					resolve();
+				} else if (attempts > 10) {
+					clearInterval(interval);
+					resolve();
+				}
+				attempts++;
+			}, 50);
+		});
+
 		const availableWidth = tunesContainer?.clientWidth;
 		const availableHeight = tunesContainer?.clientHeight;
-
 		if (!availableWidth || !availableHeight) {
 			autoZooming = false;
 			return;
 		}
 
-		let bestMaxWidth = 0;
-
-		for (let numColumns = 1; numColumns <= tunes.length; numColumns++) {
-			const columnWidth = availableWidth / numColumns;
-			let maxHeight = 0;
-			for (let i = 0; i < numColumns; i++) {
-				let columnHeight = 0;
-				for (let j = i; j < tunes.length; j += numColumns) {
-					const tune = tunes[j];
-					if (tune.aspectRatio) {
-						columnHeight += columnWidth / tune.aspectRatio;
-					}
-				}
-				maxHeight = Math.max(maxHeight, columnHeight);
-			}
-
-			if (maxHeight <= availableHeight) {
-				const currentMaxWidth = (columnWidth / availableWidth) * 100;
-				if (currentMaxWidth > bestMaxWidth) {
-					bestMaxWidth = currentMaxWidth;
-				}
-			} else {
-				// Tunes don't fit, so let's try making them narrower
-				const requiredWidth = (availableHeight / maxHeight) * columnWidth;
-				const currentMaxWidth = (requiredWidth / availableWidth) * 100;
-				if (currentMaxWidth > bestMaxWidth) {
-					bestMaxWidth = currentMaxWidth;
-				}
-			}
-		}
-		$maxWidth = bestMaxWidth;
+		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
+		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
+		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
 		autoZooming = false;
 	}
 </script>
@@ -220,21 +281,24 @@
 		<span class="key-reminder"
 			>Folder key: {ROOTS[(ROOTS.length + 3 - $globalTransposition) % ROOTS.length]}</span
 		>
-		<button class="toggle-controls" onclick={() => (hideControls = !hideControls)}
-			>{hideControls ? 'Show' : 'Hide'} controls</button
+		<button
+			class="toggle-controls"
+			onclick={async () => {
+				hideControls = !hideControls;
+			}}>{hideControls ? 'Show' : 'Hide'} controls</button
 		>
 		<div id="controls" class:hidden={hideControls}>
 			<button
 				onclick={() => {
 					$autozoomEnabled = false;
-					$maxWidth -= 5;
+					$maxWidth! -= 5;
 				}}
 				disabled={$maxWidth <= 20}>Zoom out</button
 			>
 			<button
 				onclick={() => {
 					$autozoomEnabled = false;
-					$maxWidth += 5;
+					$maxWidth! += 5;
 				}}
 				disabled={$maxWidth >= 95}>Zoom in</button
 			>
@@ -270,7 +334,13 @@
 
 	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth <= 50}>
 		{#each tunes as tune, i}
-			<div class="tune" style="max-width: {$maxWidth}vw" bind:this={tune.div}>
+			<div
+				class="tune"
+				class:hidden={!visible[i]}
+				style="max-width: {$maxWidth}vw"
+				class:loading={!$maxWidth}
+				bind:this={tune.div}
+			>
 				{#if tune.originalKey}
 					<span class="original-key" class:hidden={hideControls}>
 						<KeySelect
@@ -308,48 +378,51 @@
 						Copy ABC
 					</button>
 				{/if}
-				<Tune
-					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
-					globalTransposition={$globalTransposition}
-					tuneOffset={tune.offset}
-					{fontFamily}
-					{tunesContainer}
-				/>
+				<div
+					style="max-width: {$maxWidth *
+						(!hideControls && tune.widthCorrectionFactor ? tune.widthCorrectionFactor : 1)}vw"
+				>
+					<Tune
+						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+						globalTransposition={$globalTransposition}
+						tuneOffset={tune.offset}
+						{fontFamily}
+						{tunesContainer}
+					/>
+				</div>
 			</div>
 		{/each}
 	</div>
-
-	{#if calculatingAspectRatio}
-		<div class="offscreen-tunes">
-			{#each tunes as tune, i}
-				<Tune
-					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
-					globalTransposition={$globalTransposition}
-					tuneOffset={tune.offset}
-					{fontFamily}
-					onrerenderedAbc={async (tuneDiv) => {
-						const svg = tuneDiv?.getElementsByTagName('svg')?.[0];
-						if (svg) {
-							const viewBox = svg.getAttribute('viewBox');
-							if (viewBox) {
-								const [, , width, height] = viewBox.split(' ').map(parseFloat);
-								console.log(`Width & height for tune ${tune.slug}:`, width, height);
-								tune.aspectRatio = width / height;
-								if (tunes.every((t) => t.aspectRatio)) {
-									fitToPage();
-								}
-							}
-						}
-					}}
-				/>
-			{/each}
-		</div>
-	{/if}
 
 	{#if !$notesHidden}
 		<div class="notes-container">{@render children?.()}</div>
 	{/if}
 </div>
+
+{#if displayFrom.length > 1}
+	<button
+		onclick={() => {
+			window.scrollBy(0, -25);
+			displayFrom.pop();
+		}}
+		class="page back"
+		aria-label="Previous page"
+	>
+		<div></div>
+	</button>
+{/if}
+{#if !visible[visible.length - 1]}
+	<button
+		onclick={() => {
+			const nextPageStart = visible.lastIndexOf(true) + 1;
+			displayFrom = [...displayFrom, nextPageStart];
+		}}
+		class="page next"
+		aria-label="Next page"
+	>
+		<div></div>
+	</button>
+{/if}
 
 <style>
 	.toggle-controls {
@@ -377,6 +450,7 @@
 		width: 100svw;
 		padding-top: 1rem;
 		box-sizing: border-box;
+		max-width: 100svw;
 	}
 
 	.tunes {
@@ -430,6 +504,43 @@
 		z-index: 10;
 	}
 
+	/* PAGE TURN BUTTONS */
+	button.page {
+		position: fixed;
+		bottom: 0;
+		height: 100%;
+		width: min(15%, 10vw);
+		border: none;
+		background: none;
+	}
+
+	button.back {
+		left: 0;
+	}
+
+	button.next {
+		right: 0;
+	}
+
+	button.page div {
+		width: 0;
+		height: 0;
+		border-top: 30px solid transparent;
+		border-bottom: 30px solid transparent;
+	}
+
+	button.page.back div {
+		border-right: 30px solid lightgray;
+		position: absolute;
+		left: 0.5em;
+	}
+
+	button.page.next div {
+		border-left: 30px solid lightgray;
+		position: absolute;
+		right: 0.5em;
+	}
+
 	/* HIDING TUNES THAT AREN'T DISPLAYED */
 	.hidden {
 		display: none;
@@ -452,5 +563,8 @@
 		position: absolute;
 		top: 1.25rem;
 		right: 1.25rem;
+	}
+	.loading {
+		display: none;
 	}
 </style>
