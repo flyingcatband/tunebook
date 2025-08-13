@@ -221,6 +221,31 @@
 		autoZooming = false;
 		$maxWidth = $maxWidth;
 	}
+
+	function nextPage() {
+		if (!visible[visible.length - 1]) {
+			displayFrom = [...displayFrom, visible.indexOf(false)];
+		}
+	}
+
+	function previousPage() {
+		if (displayFrom.length > 1) {
+			window.scrollBy(0, -25);
+			displayFrom.pop();
+		}
+	}
+
+	function onkeydown(event: KeyboardEvent) {
+		if (event.target instanceof HTMLSelectElement) {
+			return;
+		} else if (['ArrowRight', 'PageDown', 'ArrowDown'].includes(event.key)) {
+			nextPage();
+		} else if (['ArrowLeft', 'PageUp', 'ArrowUp'].includes(event.key)) {
+			previousPage();
+		} else if (event.key === 'Escape') {
+			hideControls = true;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -230,7 +255,7 @@
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
 {/if}
-<svelte:window bind:innerHeight bind:innerWidth />
+<svelte:window bind:innerHeight bind:innerWidth {onkeydown} />
 
 <div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
 	<div class="controls-container">
@@ -354,23 +379,12 @@
 </div>
 
 {#if displayFrom.length > 1}
-	<button
-		onclick={() => {
-			window.scrollBy(0, -25);
-			displayFrom.pop();
-		}}
-		class="page back"
-		aria-label="Previous page"
-	>
+	<button onclick={previousPage} class="page back" aria-label="Previous page">
 		<div></div>
 	</button>
 {/if}
 {#if !visible[visible.length - 1]}
-	<button
-		onclick={() => (displayFrom = [...displayFrom, visible.indexOf(false)])}
-		class="page next"
-		aria-label="Next page"
-	>
+	<button onclick={nextPage} class="page next" aria-label="Next page">
 		<div></div>
 	</button>
 {/if}

@@ -171,6 +171,25 @@ test('set navigates to start when switching between different sets', async ({ pa
 	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
 	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
 
+	// Verify that we can navigate back and forth between the two tunes with the arrow keys
+	await page.keyboard.press('ArrowLeft');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+
+	await page.keyboard.press('ArrowRight');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+
+	// Check that pressing the right arrow key many times causes us to stay at the end of the set
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await page.keyboard.press('ArrowRight');
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	await page.keyboard.press('ArrowLeft');
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+
 	// Navigate back to the previous set, check that we're sent to the start of said set
 	await page.getByRole('link', { name: 'Previous set' }).click();
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
