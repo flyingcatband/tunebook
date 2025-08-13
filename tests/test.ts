@@ -291,26 +291,46 @@ test('transposition selection quotes correct keys when globally transposed', asy
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	page.setViewportSize({ width: 1600, height: 1200 });
+	page.setViewportSize({ width: 1600, height: 1150 });
+	const firstTune = page.getByText('The Old Morpeth Rant', { exact: true });
 	const secondTune = page.getByText('The Silver Spear', { exact: true });
-	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
 	await page.goto('/Reels-1-Some-reels');
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await page.getByRole('button', { name: 'Hide notes' }).tap();
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 	const button = page.getByRole('button', { name: 'Zoom in' });
-	while (!(await button.isDisabled()) && (await thirdTune.isVisible())) {
+	while (!(await button.isDisabled()) && (await secondTune.isVisible())) {
 		await button.tap();
 	}
 
-	await expect(thirdTune).not.toBeInViewport();
-	await expect(secondTune).toBeInViewport();
+	await expect(secondTune).not.toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
+});
+
+test('page controls work with controls shown and autozoom enabled', async ({ page }) => {
+	page.setViewportSize({ width: 1100, height: 720 });
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Hide controls' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeInViewport();
 });
 
 test('set and tune notes can be hidden', async ({ page }) => {

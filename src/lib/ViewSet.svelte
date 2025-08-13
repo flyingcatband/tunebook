@@ -5,7 +5,7 @@
 	import Tune from '$lib/Tune.svelte';
 	import { writable, type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { untrack, type Snippet } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
@@ -56,7 +56,11 @@
 		if (!BROWSER || !tunesContainer) return;
 
 		const resizeObserver = new ResizeObserver(() => {
-			fitToPage();
+			if ($autozoomEnabled) {
+				fitToPage();
+			} else {
+				manuallyPaginate();
+			}
 		});
 
 		resizeObserver.observe(tunesContainer);
@@ -82,7 +86,7 @@
 	$effect(() => {
 		if (!hideControls) {
 			tunes.forEach((tune) => {
-				if (tune.div && tune.aspectRatio) {
+				if (tune.div && tune.aspectRatio && !tune.widthCorrectionFactor) {
 					const rect = tune.div.getBoundingClientRect();
 					const currentAspectRatio = rect.width / rect.height;
 					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
@@ -94,7 +98,13 @@
 	$effect(() => {
 		if ($autozoomEnabled) {
 			visible = new Array(tunes.length).fill(true);
-			untrack(fitToPage);
+			if (hideControls || $maxWidth === null) {
+				displayFrom = [0];
+				untrack(fitToPage);
+			} else {
+				// If we're autozooming, we don't need to paginate manually
+				manuallyPaginate();
+			}
 		} else {
 			manuallyPaginate();
 		}
@@ -104,6 +114,7 @@
 		if (!BROWSER || !tunesContainer) {
 			return;
 		}
+		console.log('Manually paginating tunes, from index', displayFrom.at(-1) ?? 0);
 
 		const availableWidth = tunesContainer.clientWidth;
 		const availableHeight = tunesContainer.clientHeight;
@@ -120,7 +131,7 @@
 
 		for (let i = startIndex; i < tunes.length; i++) {
 			const tune = tunes[i];
-			const tuneHeight = columnWidth / tune.aspectRatio!;
+			const tuneHeight = columnWidth / tune.currentAspectRatio!;
 			if (i > startIndex && columnHeights[columnIndex] + tuneHeight > availableHeight) {
 				columnIndex++;
 			}
@@ -133,11 +144,9 @@
 			if (columnHeights[columnIndex] + tuneHeight <= availableHeight) {
 				columnHeights[columnIndex] += tuneHeight;
 				newVisible[i] = true;
-			} else {
-				if (i === startIndex) {
-					newVisible[i] = true;
-				}
-				break;
+			} else if (i === startIndex) {
+				columnHeights[columnIndex] += tuneHeight;
+				newVisible[i] = true;
 			}
 		}
 
@@ -192,6 +201,7 @@
 		offset: Writable<number>;
 		aspectRatio?: number;
 		widthCorrectionFactor?: number;
+		currentAspectRatio?: number;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
@@ -211,7 +221,10 @@
 				},
 				originalKey: abcDetails?.getKeySignature(),
 				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0),
-				aspectRatio: width && height && width / height
+				aspectRatio: width && height && width / height,
+				get currentAspectRatio() {
+					return div?.clientHeight ? div?.clientWidth / div?.clientHeight : width / height;
+				}
 			};
 		})
 	);
@@ -236,7 +249,11 @@
 		if (!$autozoomEnabled || autoZooming || !BROWSER) {
 			return;
 		}
+		if (!hideControls && $maxWidth !== null) {
+			return manuallyPaginate();
+		}
 		autoZooming = true;
+		visible = new Array(tunes.length).fill(true);
 
 		// Wait for the tunesContainer to have a height before calculating the best zoom level
 		await new Promise<void>((resolve) => {
