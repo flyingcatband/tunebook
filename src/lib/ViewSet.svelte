@@ -301,7 +301,7 @@
 
 	function nextPage() {
 		if (!visible[visible.length - 1]) {
-			displayFrom = [...displayFrom, visible.indexOf(false)];
+			displayFrom = [...displayFrom, visible.lastIndexOf(true) + 1];
 		}
 	}
 

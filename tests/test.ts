@@ -422,6 +422,45 @@ test('tune abc can be copied', async ({ page, context }) => {
 	expect(clipboardContent).toContain(tuneTitle);
 });
 
+test('scrolls through all pages of a set', async ({ page }) => {
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	const secondTune = page.getByText('Spirit of the Dance', { exact: true });
+	while (await secondTune.isVisible()) {
+		await page.getByRole('button', { name: 'Zoom in' }).click();
+	}
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).not.toBeInViewport();
+
+	await expect(page.getByRole('button', { name: 'Next page' })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+
+	await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeInViewport();
+});
+
 describe('wakelock', () => {
 	/**
 	 * A helper function to set up a spy on the navigator.wakeLock.request method.
