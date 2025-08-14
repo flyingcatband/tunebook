@@ -198,11 +198,13 @@
 				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
 				aspectRatio: width && height && width / height,
 				get currentAspectRatio() {
-					const ar = div?.clientHeight ? div?.clientWidth / div?.clientHeight : width / height;
-					if (ar && hideControls) {
-						this.aspectRatio = ar;
+					const containerAspectRatio = div?.clientHeight
+						? div?.clientWidth / div?.clientHeight
+						: width / height;
+					if (containerAspectRatio && hideControls) {
+						this.aspectRatio = containerAspectRatio;
 					}
-					return ar;
+					return containerAspectRatio;
 				}
 			};
 		})
@@ -296,11 +298,7 @@
 			return;
 		}
 
-		const ar = tunes.map((tune) =>
-			hideControls ? { aspectRatio: tune.currentAspectRatio || tune.aspectRatio } : tune
-		);
-		let bestMaxWidth = calculateMaximumWidth(ar, availableWidth, availableHeight);
-		console.log(bestMaxWidth, availableWidth, availableHeight);
+		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
 		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
 		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
 	}
