@@ -200,8 +200,13 @@
 				get currentAspectRatio() {
 					const containerAspectRatio = div?.clientHeight
 						? div?.clientWidth / div?.clientHeight
-						: width / height;
+						: this.aspectRatio;
 					if (containerAspectRatio && hideControls) {
+						// ABCJS renders SVGs at a slightly different aspect
+						// ratio in the renderAbc('*', ...) call compared to on
+						// the page. In order to make sure the SVGs fit as well as
+						// possible, we can update the aspect ratio of the tune
+						// when we know it for reals.
 						this.aspectRatio = containerAspectRatio;
 					}
 					return containerAspectRatio;

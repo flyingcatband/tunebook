@@ -520,6 +520,37 @@ describe('wakelock', () => {
 	});
 });
 
+test('pages remain the same after navigating away and back', async ({ page }) => {
+	await page.setViewportSize({ width: 495, height: 841 });
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await expect(page.getByText('50%')).toBeVisible();
+	for (let i = 0; i < 5; i++) {
+		await page.getByRole('button', { name: 'Zoom in' }).click();
+	}
+	await expect(page.getByText('75%')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+});
+
 describe('properties', () => {
 	const TEST_TIMEOUT_MILLIS = 15_000;
 	// Set the playwright test timeout larger than the fast-check timeout
@@ -623,7 +654,10 @@ describe('properties', () => {
 			{
 				timeout: TEST_TIMEOUT_MILLIS,
 				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
-				examples: [[363, 971]]
+				examples: [
+					[363, 971],
+					[387, 1377]
+				]
 			}
 		);
 	});
