@@ -2,6 +2,15 @@ import { expect, test, type Page } from '@playwright/test';
 import { describe } from 'node:test';
 import fc from 'fast-check';
 
+// To keep the console clean, throw an error to fail the test immediately if a console message occurs.
+test.beforeEach(({ page }) => {
+	page.on('console', (message) => {
+		if (message.type() in ['warning', 'error']) {
+			throw new Error(`Unexpected error in console: ${message.text()}`);
+		}
+	});
+});
+
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'Demo folder', exact: true })).toBeVisible();
@@ -411,6 +420,64 @@ test('tune abc can be copied', async ({ page, context }) => {
 	const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
 	expect(clipboardContent).toContain('X:');
 	expect(clipboardContent).toContain(tuneTitle);
+});
+
+describe('wakelock', () => {
+	/**
+	 * A helper function to set up a spy on the navigator.wakeLock.request method.
+	 * It uses page.exposeFunction to create a communication bridge from the browser
+	 * context (where the app runs) to the Node.js context (where the test runs).
+	 *
+	 * @param page The Playwright Page object.
+	 * @returns A Promise that resolves with the type of wake lock requested (e.g., 'screen').
+	 */
+	const spyOnWakeLock = (page: Page): Promise<string> => {
+		// Create a Promise that will resolve when our exposed function is called.
+		// This is how we "wait" for the API call to happen in our test.
+		const wakeLockRequestedPromise = new Promise<string>((resolve) => {
+			// This function will be exposed to the browser's window object.
+			// We can name it anything we want, e.g., 'onWakeLockRequest'.
+			page.exposeFunction('onWakeLockRequest', (type: string) => {
+				console.log(`Playwright test detected wake lock request of type: ${type}`);
+				resolve(type);
+			});
+		});
+
+		// This is the core of the solution. We run a script in the browser *before*
+		// our app's code runs. This script replaces the original wake lock function
+		// with our own version (a "spy").
+		page
+			.addInitScript(() => {
+				// Ensure navigator.wakeLock exists before trying to patch it.
+				if (navigator.wakeLock) {
+					// Store the original function so we can still call it.
+					const originalRequest = navigator.wakeLock.request.bind(navigator.wakeLock);
+
+					// Override the original function.
+					navigator.wakeLock.request = async (type: WakeLockType) => {
+						console.log(`Wake lock request intercepted for type: ${type}`);
+
+						// 1. Notify our test by calling the function we exposed.
+						// The 'as any' is used to tell TypeScript that we know window.onWakeLockRequest exists.
+						(window as any).onWakeLockRequest(type);
+
+						// 2. Call the original function to ensure the app behaves as expected.
+						// This is important so we don't break the actual functionality.
+						return originalRequest(type);
+					};
+				}
+			})
+			.catch((err) => console.error('Error in addInitScript:', err));
+
+		return wakeLockRequestedPromise;
+	};
+
+	test('view set requests wake lock', async ({ page, context }) => {
+		const wakeLockRequested = spyOnWakeLock(page);
+		await page.goto('/Jigs-1-Severn-Stars');
+		const wakeLockType = await wakeLockRequested;
+		expect(wakeLockType).toBe('screen');
+	});
 });
 
 describe('properties', () => {
