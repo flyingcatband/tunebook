@@ -81,20 +81,3 @@ export function calculateMaximumWidth(
 	// Convert the final optimal width (in pixels) to a percentage.
 	return (bestWidth / containerWidth) * 100;
 }
-
-// --- Example Usage ---
-// const shapes: SvgShape[] = [
-//   { aspectRatio: 1 },    // Square
-//   { aspectRatio: 1.5 },  // Landscape
-//   { aspectRatio: 0.75 }, // Portrait
-//   { aspectRatio: 2 },    // Wide
-//   { aspectRatio: 1 }     // Square
-// ];
-//
-// const availableWidth = 800;
-// const availableHeight = 600;
-//
-// const percentageWidth = calculateMaximumWidth(shapes, availableWidth, availableHeight);
-//
-// console.log(`Each SVG should have a width of ${percentageWidth.toFixed(2)}% of the container.`);
-// // This would mean setting the style: `width: ${percentageWidth}%` on each SVG.

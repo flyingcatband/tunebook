@@ -47,7 +47,7 @@
 		hideCopyAbc = false
 	}: Props = $props();
 
-	let tunesContainerHeight: number = 0;
+	let tunesContainerHeight: number = $state(0);
 
 	onMount(() => {
 		if (!customElements.get('drab-wakelock')) {
@@ -58,19 +58,17 @@
 
 		if (!BROWSER || !tunesContainer) return;
 
-		const resizeObserver = new ResizeObserver(() =>
-			untrack(() => {
-				const height = tunesContainer?.clientHeight;
-				if (height && hideControls) {
-					tunesContainerHeight = height;
-				}
-				if ($autozoomEnabled) {
-					fitToPage();
-				} else {
-					manuallyPaginate();
-				}
-			})
-		);
+		const resizeObserver = new ResizeObserver(() => {
+			const height = tunesContainer?.clientHeight;
+			if (height && hideControls) {
+				tunesContainerHeight = height;
+			}
+			if ($autozoomEnabled) {
+				fitToPage();
+			} else {
+				manuallyPaginate();
+			}
+		});
 
 		resizeObserver.observe(tunesContainer);
 
@@ -185,8 +183,8 @@
 		(set?.content || []).map((tune) => {
 			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
 			const svg = abcDetails?.engraver?.renderer.paper.svg;
-			const width = parseFloat(svg?.getAttribute('width') || '0');
-			const height = parseFloat(svg?.getAttribute('height') || '0');
+			let width = svg?.getAttribute('width') ? parseFloat(svg.getAttribute('width')!) : 0;
+			let height = svg?.getAttribute('height') ? parseFloat(svg.getAttribute('height')!) : 0;
 			let div = $state<Element>();
 			return {
 				...tune,
@@ -200,7 +198,11 @@
 				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
 				aspectRatio: width && height && width / height,
 				get currentAspectRatio() {
-					return div?.clientHeight ? div?.clientWidth / div?.clientHeight : width / height;
+					const ar = div?.clientHeight ? div?.clientWidth / div?.clientHeight : width / height;
+					if (ar && hideControls) {
+						this.aspectRatio = ar;
+					}
+					return ar;
 				}
 			};
 		})
@@ -294,7 +296,11 @@
 			return;
 		}
 
-		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
+		const ar = tunes.map((tune) =>
+			hideControls ? { aspectRatio: tune.currentAspectRatio || tune.aspectRatio } : tune
+		);
+		let bestMaxWidth = calculateMaximumWidth(ar, availableWidth, availableHeight);
+		console.log(bestMaxWidth, availableWidth, availableHeight);
 		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
 		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
 	}
