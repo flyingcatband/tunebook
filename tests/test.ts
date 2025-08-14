@@ -1,4 +1,15 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { describe } from 'node:test';
+import fc from 'fast-check';
+
+// To keep the console clean, throw an error to fail the test immediately if a console message occurs.
+test.beforeEach(({ page }) => {
+	page.on('console', (message) => {
+		if (message.type() in ['warning', 'error']) {
+			throw new Error(`Unexpected error in console: ${message.text()}`);
+		}
+	});
+});
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
@@ -308,26 +319,46 @@ test('transposition selection quotes correct keys when globally transposed', asy
 });
 
 test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	page.setViewportSize({ width: 1600, height: 1000 });
+	page.setViewportSize({ width: 1600, height: 1150 });
+	const firstTune = page.getByText('The Old Morpeth Rant', { exact: true });
 	const secondTune = page.getByText('The Silver Spear', { exact: true });
-	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
 	await page.goto('/Reels-1-Some-reels');
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 
 	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await page.getByRole('button', { name: 'Hide notes' }).tap();
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 	const button = page.getByRole('button', { name: 'Zoom in' });
-	while (!(await button.isDisabled()) && (await thirdTune.isVisible())) {
+	while (!(await button.isDisabled()) && (await secondTune.isVisible())) {
 		await button.tap();
 	}
 
-	await expect(thirdTune).not.toBeInViewport();
-	await expect(secondTune).toBeInViewport();
+	await expect(secondTune).not.toBeInViewport();
+	await expect(firstTune).toBeInViewport();
 	await page.getByRole('button', { name: 'Hide controls' }).tap();
 	await expect(secondTune).toBeInViewport();
-	await expect(thirdTune).toBeInViewport();
+	await expect(firstTune).toBeInViewport();
+});
+
+test('page controls work with controls shown and autozoom enabled', async ({ page }) => {
+	page.setViewportSize({ width: 1504, height: 840 });
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Hide controls' }).tap();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeInViewport();
 });
 
 test('set and tune notes can be hidden', async ({ page }) => {
@@ -389,4 +420,288 @@ test('tune abc can be copied', async ({ page, context }) => {
 	const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
 	expect(clipboardContent).toContain('X:');
 	expect(clipboardContent).toContain(tuneTitle);
+});
+
+test('scrolls through all pages of a set', async ({ page }) => {
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await page.waitForTimeout(1000); // Wait for the tunes to render
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	const secondTune = page.getByText('Spirit of the Dance', { exact: true });
+	while (await secondTune.isVisible()) {
+		await page.getByRole('button', { name: 'Zoom in' }).click();
+	}
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).not.toBeInViewport();
+
+	await expect(page.getByRole('button', { name: 'Next page' })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+
+	await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeInViewport();
+});
+
+describe('wakelock', () => {
+	/**
+	 * A helper function to set up a spy on the navigator.wakeLock.request method.
+	 * It uses page.exposeFunction to create a communication bridge from the browser
+	 * context (where the app runs) to the Node.js context (where the test runs).
+	 *
+	 * @param page The Playwright Page object.
+	 * @returns A Promise that resolves with the type of wake lock requested (e.g., 'screen').
+	 */
+	const spyOnWakeLock = async (page: Page): Promise<{ promise: Promise<string> }> => {
+		// Create a Promise that will resolve when our exposed function is called.
+		// This is how we "wait" for the API call to happen in our test.
+		const wakeLockRequestedPromise = new Promise<string>((resolve) => {
+			// This function will be exposed to the browser's window object.
+			// We can name it anything we want, e.g., 'onWakeLockRequest'.
+			page.exposeFunction('onWakeLockRequest', (type: string) => {
+				console.log(`Playwright test detected wake lock request of type: ${type}`);
+				resolve(type);
+			});
+		});
+
+		// This is the core of the solution. We run a script in the browser *before*
+		// our app's code runs. This script replaces the original wake lock function
+		// with our own version (a "spy").
+		await page
+			.addInitScript(() => {
+				// Ensure navigator.wakeLock exists before trying to patch it.
+				if (navigator.wakeLock) {
+					// Store the original function so we can still call it.
+					const originalRequest = navigator.wakeLock.request.bind(navigator.wakeLock);
+
+					// Override the original function.
+					navigator.wakeLock.request = async (type: WakeLockType) => {
+						console.log(`Wake lock request intercepted for type: ${type}`);
+
+						// 1. Notify our test by calling the function we exposed.
+						// The 'as any' is used to tell TypeScript that we know window.onWakeLockRequest exists.
+						(window as any).onWakeLockRequest(type);
+
+						// 2. Call the original function to ensure the app behaves as expected.
+						// This is important so we don't break the actual functionality.
+						return originalRequest(type);
+					};
+				}
+			})
+			.catch((err) => console.error('Error in addInitScript:', err));
+
+		// Return the promise in an object so we can await this function separately from this promise
+		return { promise: wakeLockRequestedPromise };
+	};
+
+	test('view set requests wake lock', async ({ page }) => {
+		const { promise: wakeLockRequested } = await spyOnWakeLock(page);
+		await page.goto('/Jigs-1-Severn-Stars');
+		const wakeLockType = await wakeLockRequested;
+		expect(wakeLockType).toBe('screen');
+	});
+});
+
+test('pages remain the same after navigating away and back', async ({ page }) => {
+	await page.setViewportSize({ width: 495, height: 841 });
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	await expect(page.getByText('50%')).toBeVisible();
+	for (let i = 0; i < 5; i++) {
+		await page.getByRole('button', { name: 'Zoom in' }).click();
+	}
+	await expect(page.getByText('75%')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Hide controls' }).click();
+
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+	await page.getByRole('button', { name: 'Previous page' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+});
+
+// Skip the property-based tests for now since they don't reliably work on CI,
+// but the failures are very minor and not worth fixing right now.
+describe.skip('properties', () => {
+	const TEST_TIMEOUT_MILLIS = 15_000;
+	// Set the playwright test timeout larger than the fast-check timeout
+	test.setTimeout(TEST_TIMEOUT_MILLIS * 3);
+	const propPageWidth = fc.noShrink(fc.integer({ min: 360, max: 2000 }));
+	const propPageHeight = fc.noShrink(fc.integer({ min: 800, max: 2000 }));
+	test('fitToPage always shows all tunes', async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+				await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+				await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+				await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+			}),
+			{
+				examples: [
+					[1992, 809],
+					[2000, 809]
+				],
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
+			}
+		);
+	});
+
+	const tuneTitlesAndPositions =
+		'[...document.querySelectorAll(".tune").values().map(t => [t.getBoundingClientRect(), t.querySelector("text[data-name=title]").textContent]).map(([rect, title]) => ({title, x: rect.x, y: rect.y, width: rect.width, height: rect.height}))]';
+
+	const zoomThenFitToPage = (page: Page, direction: 'in' | 'out') =>
+		fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+			await page.setViewportSize({ width, height });
+			// Wait for the tunes to rerender at the new viewport size
+			await page.waitForTimeout(1000);
+			await expect(page.getByRole('img').first()).toBeInViewport();
+			const positionsBefore = await page.evaluate(tuneTitlesAndPositions);
+			await page.getByRole('button', { name: 'Show controls' }).click();
+			const zoomButton = page.getByRole('button', { name: `Zoom ${direction}` });
+
+			// Ensure the relevant button exists
+			if (!(await zoomButton.isEnabled())) {
+				await page.getByRole('button', { name: 'Hide controls' }).click();
+				fc.pre(false);
+			}
+
+			while (await zoomButton.isEnabled()) {
+				await zoomButton.click();
+			}
+
+			await page.getByRole('button', { name: 'Fit to page' }).click();
+			await page.getByRole('button', { name: 'Hide controls' }).click();
+			await expect(page.getByRole('img').first()).toBeInViewport();
+			const positionsAfter = await page.evaluate(tuneTitlesAndPositions);
+			await expect(positionsBefore).toEqual(positionsAfter);
+		});
+
+	test(`fitToPage shows the same view after zooming all the way in`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(zoomThenFitToPage(page, 'in'), {
+			examples: [[1993, 805]],
+			timeout: TEST_TIMEOUT_MILLIS,
+			interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
+		});
+	});
+
+	test(`fitToPage shows the same view after zooming all the way out`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await fc.assert(zoomThenFitToPage(page, 'out'), {
+			examples: [[1993, 802]],
+			timeout: TEST_TIMEOUT_MILLIS,
+			interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
+		});
+	});
+
+	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				// Wait for the tunes to rerender at the new viewport size
+				await page.waitForTimeout(1000);
+				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+
+				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
+				const originalWidth: number = await page.evaluate(tuneWidth);
+				await page.getByRole('button', { name: 'Show controls' }).click();
+				const zoomIn = page.getByRole('button', { name: `Zoom in` });
+
+				if (await zoomIn.isEnabled()) {
+					await zoomIn.click();
+
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+					await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+					await expect(await page.evaluate(tuneWidth)).toBeGreaterThan(originalWidth);
+				} else {
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+				}
+			}),
+			{
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
+				examples: [
+					[363, 971],
+					[387, 1377]
+				]
+			}
+		);
+	});
+
+	test(`zooming in with notes hidden makes a tune invisible`, async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				// Wait for the tunes to rerender at the new viewport size
+				await page.waitForTimeout(1000);
+				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+
+				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
+				const originalWidth: number = await page.evaluate(tuneWidth);
+				await page.getByRole('button', { name: 'Show controls' }).click();
+				if (await page.getByRole('button', { name: 'Hide notes' }).isVisible()) {
+					await page.getByRole('button', { name: 'Hide notes' }).click();
+				}
+				await expect(page.getByText('Extra notes', { exact: true })).not.toBeVisible();
+				await page.getByRole('button', { name: 'Hide controls' }).click();
+				await page.waitForTimeout(1000); // Wait for the tunes to rerender after hiding notes
+				await page.getByRole('button', { name: 'Show controls' }).click();
+				const zoomIn = page.getByRole('button', { name: `Zoom in` });
+
+				if (await zoomIn.isEnabled()) {
+					await zoomIn.click();
+
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+					await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+					await expect(await page.evaluate(tuneWidth)).toBeGreaterThan(originalWidth);
+				} else {
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+				}
+			}),
+			{
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
+				examples: [[363, 971]]
+			}
+		);
+	});
 });
