@@ -49,10 +49,11 @@
 
 	let tunesContainerHeight: number = 0;
 
-	onMount(async () => {
+	onMount(() => {
 		if (!customElements.get('drab-wakelock')) {
-			const { WakeLock } = await import('drab/wakelock');
-			customElements.define('drab-wakelock', WakeLock);
+			import('drab/wakelock').then(({ WakeLock }) => {
+				customElements.define('drab-wakelock', WakeLock);
+			});
 		}
 
 		if (!BROWSER || !tunesContainer) return;
@@ -101,7 +102,7 @@
 		if (!availableWidth || !availableHeight) return;
 
 		// Max width is a percentage of the viewport width, so we need to convert it to pixels
-		const columnWidth = innerWidth * ($maxWidth / 100);
+		const columnWidth = innerWidth * ($maxWidth! / 100);
 		const numColumns = Math.max(1, Math.floor(availableWidth / columnWidth));
 
 		const newVisible = new Array(tunes.length).fill(false);
@@ -350,14 +351,14 @@
 					$autozoomEnabled = false;
 					$maxWidth! -= 5;
 				}}
-				disabled={$maxWidth <= 20}>Zoom out</button
+				disabled={$maxWidth! <= 20}>Zoom out</button
 			>
 			<button
 				onclick={() => {
 					$autozoomEnabled = false;
 					$maxWidth! += 5;
 				}}
-				disabled={$maxWidth >= 95}>Zoom in</button
+				disabled={$maxWidth! >= 95}>Zoom in</button
 			>
 			{#if !$autozoomEnabled}
 				<button
@@ -389,7 +390,7 @@
 		</div>
 	</div>
 
-	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth <= 50}>
+	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth! <= 50}>
 		{#each tunes as tune, i}
 			<div
 				class="tune"
@@ -436,7 +437,7 @@
 					</button>
 				{/if}
 				<div
-					style="max-width: {$maxWidth *
+					style="max-width: {($maxWidth || 0) *
 						(!hideControls && tune.widthCorrectionFactor ? tune.widthCorrectionFactor : 1)}vw"
 				>
 					<Tune
@@ -444,7 +445,6 @@
 						globalTransposition={$globalTransposition}
 						tuneOffset={tune.offset}
 						{fontFamily}
-						{tunesContainer}
 					/>
 				</div>
 			</div>

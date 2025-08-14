@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { calculateMaximumWidth, maximiseWidth } from './fitting';
+import { calculateMaximumWidth } from './fitting';
 
 describe('fitting', () => {
 	test('it fits so it sits', () => {

@@ -499,7 +499,7 @@ describe('properties', () => {
 				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 
 				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
-				const originalWidth = await page.evaluate(tuneWidth);
+				const originalWidth: number = await page.evaluate(tuneWidth);
 				await page.getByRole('button', { name: 'Show controls' }).click();
 				const zoomIn = page.getByRole('button', { name: `Zoom in` });
 

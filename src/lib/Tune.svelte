@@ -2,7 +2,7 @@
 	import { BROWSER } from 'esm-env';
 	import pkg from 'abcjs';
 	const { renderAbc } = pkg;
-	import { writable, type Writable } from 'svelte/store';
+	import { type Writable } from 'svelte/store';
 	import { tick, untrack } from 'svelte';
 	let dots: HTMLDivElement | undefined = $state();
 	interface Props {
