@@ -47,6 +47,8 @@
 		hideCopyAbc = false
 	}: Props = $props();
 
+	let tunesContainerHeight: number = 0;
+
 	onMount(async () => {
 		if (!customElements.get('drab-wakelock')) {
 			const { WakeLock } = await import('drab/wakelock');
@@ -55,13 +57,19 @@
 
 		if (!BROWSER || !tunesContainer) return;
 
-		const resizeObserver = new ResizeObserver(() => {
-			if ($autozoomEnabled) {
-				fitToPage();
-			} else {
-				manuallyPaginate();
-			}
-		});
+		const resizeObserver = new ResizeObserver(() =>
+			untrack(() => {
+				const height = tunesContainer?.clientHeight;
+				if (height && hideControls) {
+					tunesContainerHeight = height;
+				}
+				if ($autozoomEnabled) {
+					fitToPage();
+				} else {
+					manuallyPaginate();
+				}
+			})
+		);
 
 		resizeObserver.observe(tunesContainer);
 
@@ -78,7 +86,7 @@
 	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
 	let slotFilled = $derived(children !== undefined);
 	let notesBeside = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesBeside`, false)
+		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_notesBeside`, false)
 	);
 	let displayFrom: number[] = $state([0]);
 	let visible: boolean[] = $state(new Array(set.content.length).fill(false));
@@ -97,12 +105,21 @@
 
 	$effect(() => {
 		if ($autozoomEnabled) {
-			visible = new Array(tunes.length).fill(true);
 			if (hideControls || $maxWidth === null) {
+				visible = new Array(tunes.length).fill(true);
 				displayFrom = [0];
-				untrack(fitToPage);
+			}
+		}
+	});
+
+	$effect(() => {
+		if ($autozoomEnabled) {
+			if (hideControls || $maxWidth === null) {
+				fitToPage();
 			} else {
 				// If we're autozooming, we don't need to paginate manually
+				untrack(updateMaxWidth);
+				// But we still need to manually paginate if the maxWidth is set
 				manuallyPaginate();
 			}
 		} else {
@@ -114,7 +131,6 @@
 		if (!BROWSER || !tunesContainer) {
 			return;
 		}
-		console.log('Manually paginating tunes, from index', displayFrom.at(-1) ?? 0);
 
 		const availableWidth = tunesContainer.clientWidth;
 		const availableHeight = tunesContainer.clientHeight;
@@ -135,12 +151,10 @@
 			if (i > startIndex && columnHeights[columnIndex] + tuneHeight > availableHeight) {
 				columnIndex++;
 			}
-
 			if (columnIndex >= numColumns) {
 				// No more columns available, so we can't display any more tunes
 				break;
 			}
-
 			if (columnHeights[columnIndex] + tuneHeight <= availableHeight) {
 				columnHeights[columnIndex] += tuneHeight;
 				newVisible[i] = true;
@@ -150,17 +164,15 @@
 			}
 		}
 
-		if (JSON.stringify(visible) !== JSON.stringify(newVisible)) {
-			visible = newVisible;
-		}
+		visible = newVisible;
 	}
 
 	let notesHidden = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_notesHidden`, false)
+		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_notesHidden`, false)
 	);
 	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
 	let clef: Writable<Clef | 'global'> = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_clef`, 'global')
+		keyedLocalStorage(`${settingsScope}${set?.slug}_clef`, 'global')
 	);
 	let preservedFieldRegex = $derived(
 		new RegExp(
@@ -199,13 +211,13 @@
 		div?: Element;
 		originalKey?: KeySignature;
 		offset: Writable<number>;
-		aspectRatio?: number;
+		aspectRatio: number;
 		widthCorrectionFactor?: number;
 		currentAspectRatio?: number;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
-		set.content.map((tune) => {
+		(set?.content || []).map((tune) => {
 			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
 			const svg = abcDetails?.engraver?.renderer.paper.svg;
 			const width = parseFloat(svg?.getAttribute('width') || '0');
@@ -220,7 +232,7 @@
 					div = value;
 				},
 				originalKey: abcDetails?.getKeySignature(),
-				offset: keyedLocalStorage(`${settingsScope}${set.slug}_${tune.slug}_offset`, 0),
+				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
 				aspectRatio: width && height && width / height,
 				get currentAspectRatio() {
 					return div?.clientHeight ? div?.clientWidth / div?.clientHeight : width / height;
@@ -233,11 +245,11 @@
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let hideControls = $state(true);
 	let autozoomEnabled = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_autozoom`, true)
+		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_autozoom`, true)
 	);
 
 	let maxWidth: Writable<number | null> = $derived(
-		keyedLocalStorage(`${settingsScope}${set.slug}_${orientation}_maxWidth`, null)
+		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
 	);
 
 	let autoZooming = false;
@@ -270,8 +282,13 @@
 			}, 50);
 		});
 
+		updateMaxWidth();
+		autoZooming = false;
+	}
+
+	function updateMaxWidth() {
 		const availableWidth = tunesContainer?.clientWidth;
-		const availableHeight = tunesContainer?.clientHeight;
+		const availableHeight = tunesContainerHeight || tunesContainer?.clientHeight;
 		if (!availableWidth || !availableHeight) {
 			autoZooming = false;
 			return;
@@ -280,7 +297,6 @@
 		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
 		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
 		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
-		autoZooming = false;
 	}
 </script>
 

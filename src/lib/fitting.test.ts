@@ -23,4 +23,22 @@ describe('fitting', () => {
 		expect(result).toBeGreaterThan(30);
 		expect(result).toBeLessThan(35);
 	});
+
+	test('it maximises width according to height constraints', () => {
+		const tunes = [
+			[770, 647.7550234533238],
+			[770, 463.54499999999996],
+			[770, 469.2689191608682],
+			[770, 459.66999999999996]
+		].map(([width, height]) => ({ aspectRatio: width / height }));
+		const tuneContainerDimensions = { width: 363, height: 622 };
+		const result = calculateMaximumWidth(
+			tunes,
+			tuneContainerDimensions.width,
+			tuneContainerDimensions.height
+		);
+
+		expect(result).toBeGreaterThan(60);
+		expect(result).toBeLessThan(65);
+	});
 });

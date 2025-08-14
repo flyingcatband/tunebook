@@ -315,7 +315,7 @@ test('manually zoomed tunes reflow to fit page when controls are hidden', async 
 });
 
 test('page controls work with controls shown and autozoom enabled', async ({ page }) => {
-	page.setViewportSize({ width: 1100, height: 720 });
+	page.setViewportSize({ width: 1504, height: 840 });
 	await page.goto('/Jigs-2-Lots-of-jigs');
 	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
 
