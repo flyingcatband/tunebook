@@ -472,7 +472,7 @@ describe('wakelock', () => {
 		return wakeLockRequestedPromise;
 	};
 
-	test('view set requests wake lock', async ({ page, context }) => {
+	test('view set requests wake lock', async ({ page }) => {
 		const wakeLockRequested = spyOnWakeLock(page);
 		await page.goto('/Jigs-1-Severn-Stars');
 		const wakeLockType = await wakeLockRequested;
