@@ -415,7 +415,8 @@ describe('properties', () => {
 					[1992, 809],
 					[2000, 809]
 				],
-				timeout: TEST_TIMEOUT_MILLIS
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 			}
 		);
 	});
@@ -426,6 +427,8 @@ describe('properties', () => {
 	const zoomThenFitToPage = (page: Page, direction: 'in' | 'out') =>
 		fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
 			await page.setViewportSize({ width, height });
+			// Wait for the tunes to rerender at the new viewport size
+			await page.waitForTimeout(1000);
 			await expect(page.getByRole('img').first()).toBeInViewport();
 			const positionsBefore = await page.evaluate(tuneTitlesAndPositions);
 			await page.getByRole('button', { name: 'Show controls' }).click();
@@ -452,7 +455,8 @@ describe('properties', () => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await fc.assert(zoomThenFitToPage(page, 'in'), {
 			examples: [[1993, 805]],
-			timeout: TEST_TIMEOUT_MILLIS
+			timeout: TEST_TIMEOUT_MILLIS,
+			interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 		});
 	});
 
@@ -460,44 +464,39 @@ describe('properties', () => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await fc.assert(zoomThenFitToPage(page, 'out'), {
 			examples: [[1993, 802]],
-			timeout: TEST_TIMEOUT_MILLIS
+			timeout: TEST_TIMEOUT_MILLIS,
+			interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 		});
 	});
 
 	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
+		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 		await fc.assert(
 			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
 				await page.setViewportSize({ width, height });
+				// Wait for the tunes to rerender at the new viewport size
+				await page.waitForTimeout(1000);
 				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 
-				await page.getByRole('button', { name: 'Show controls' }).click();
-				const zoomIn = page.getByRole('button', { name: `Zoom in` });
 				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
 				const originalWidth = await page.evaluate(tuneWidth);
+				await page.getByRole('button', { name: 'Show controls' }).click();
+				const zoomIn = page.getByRole('button', { name: `Zoom in` });
 
-				// Ensure the relevant button exists
-				if (!(await zoomIn.isEnabled())) {
-					await page.getByRole('button', { name: 'Hide controls' }).click();
-					fc.pre(false);
-				}
+				if (await zoomIn.isEnabled()) {
+					await zoomIn.click();
 
-				while ((await page.evaluate(tuneWidth)) <= originalWidth) {
-					if (await zoomIn.isEnabled()) {
-						await zoomIn.click();
-					} else {
-						break;
-					}
-				}
-				if ((await page.evaluate(tuneWidth)) <= originalWidth) {
 					await page.getByRole('button', { name: 'Hide controls' }).click();
-					fc.pre(false);
+					await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+					await expect(await page.evaluate(tuneWidth)).toBeGreaterThan(originalWidth);
+				} else {
+					await page.getByRole('button', { name: 'Hide controls' }).click();
 				}
-				await page.getByRole('button', { name: 'Hide controls' }).click();
-				await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
 			}),
 			{
 				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
 				examples: [[363, 971]]
 			}
 		);

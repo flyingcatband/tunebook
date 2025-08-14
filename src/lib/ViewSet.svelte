@@ -3,9 +3,9 @@
 	import pkg, { type KeySignature } from 'abcjs';
 	import KeySelect from '$lib/KeySelect.svelte';
 	import Tune from '$lib/Tune.svelte';
-	import { writable, type Writable } from 'svelte/store';
+	import { type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { tick, untrack, type Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
 
 	const { renderAbc } = pkg;
@@ -90,42 +90,6 @@
 	);
 	let displayFrom: number[] = $state([0]);
 	let visible: boolean[] = $state(new Array(set.content.length).fill(false));
-
-	$effect(() => {
-		if (!hideControls) {
-			tunes.forEach((tune) => {
-				if (tune.div && tune.aspectRatio && !tune.widthCorrectionFactor) {
-					const rect = tune.div.getBoundingClientRect();
-					const currentAspectRatio = rect.width / rect.height;
-					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
-				}
-			});
-		}
-	});
-
-	$effect(() => {
-		if ($autozoomEnabled) {
-			if (hideControls || $maxWidth === null) {
-				visible = new Array(tunes.length).fill(true);
-				displayFrom = [0];
-			}
-		}
-	});
-
-	$effect(() => {
-		if ($autozoomEnabled) {
-			if (hideControls || $maxWidth === null) {
-				fitToPage();
-			} else {
-				// If we're autozooming, we don't need to paginate manually
-				untrack(updateMaxWidth);
-				// But we still need to manually paginate if the maxWidth is set
-				manuallyPaginate();
-			}
-		} else {
-			manuallyPaginate();
-		}
-	});
 
 	function manuallyPaginate() {
 		if (!BROWSER || !tunesContainer) {
@@ -247,10 +211,45 @@
 	let autozoomEnabled = $derived(
 		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_autozoom`, true)
 	);
-
 	let maxWidth: Writable<number | null> = $derived(
 		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
 	);
+
+	$effect(() => {
+		if (!hideControls) {
+			tunes.forEach((tune) => {
+				if (tune.div && tune.aspectRatio && !tune.widthCorrectionFactor) {
+					const rect = tune.div.getBoundingClientRect();
+					const currentAspectRatio = rect.width / rect.height;
+					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
+				}
+			});
+		}
+	});
+
+	$effect(() => {
+		if ($autozoomEnabled) {
+			if (hideControls || $maxWidth === null) {
+				visible = new Array(tunes.length).fill(true);
+				displayFrom = [0];
+			}
+		}
+	});
+
+	$effect(() => {
+		if ($autozoomEnabled) {
+			if (hideControls || $maxWidth === null) {
+				fitToPage();
+			} else {
+				// If we're autozooming, we don't need to paginate manually
+				untrack(updateMaxWidth);
+				// But we still need to manually paginate if the maxWidth is set
+				manuallyPaginate();
+			}
+		} else {
+			manuallyPaginate();
+		}
+	});
 
 	let autoZooming = false;
 	$effect(() => {
