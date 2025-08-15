@@ -554,7 +554,7 @@ test('pages remain the same after navigating away and back', async ({ page }) =>
 
 // Skip the property-based tests for now since they don't reliably work on CI,
 // but the failures are very minor and not worth fixing right now.
-describe.skip('properties', () => {
+describe('properties', () => {
 	const TEST_TIMEOUT_MILLIS = 15_000;
 	// Set the playwright test timeout larger than the fast-check timeout
 	test.setTimeout(TEST_TIMEOUT_MILLIS * 3);
@@ -629,7 +629,7 @@ describe.skip('properties', () => {
 		});
 	});
 
-	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
+	test.skip(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 		await fc.assert(
@@ -665,7 +665,7 @@ describe.skip('properties', () => {
 		);
 	});
 
-	test(`zooming in with notes hidden makes a tune invisible`, async ({ page }) => {
+	test.skip(`zooming in with notes hidden makes a tune invisible`, async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 		await fc.assert(
@@ -700,7 +700,10 @@ describe.skip('properties', () => {
 			{
 				timeout: TEST_TIMEOUT_MILLIS,
 				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
-				examples: [[363, 971]]
+				examples: [
+					[363, 971],
+					[368, 1994]
+				]
 			}
 		);
 	});
