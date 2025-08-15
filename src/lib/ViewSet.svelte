@@ -118,13 +118,12 @@
 				// No more columns available, so we can't display any more tunes
 				break;
 			}
-			if (columnHeights[columnIndex] + tuneHeight <= availableHeight) {
-				columnHeights[columnIndex] += tuneHeight;
-				newVisible[i] = true;
-			} else if (i === startIndex) {
-				columnHeights[columnIndex] += tuneHeight;
-				newVisible[i] = true;
-			}
+
+			// At this point, either the column is tall enough to fit the tune,
+			// or the tune is too tall to fit in any column, so we just put it
+			// in the first free column
+			columnHeights[columnIndex] += tuneHeight;
+			newVisible[i] = true;
 		}
 
 		visible = newVisible;
@@ -176,7 +175,8 @@
 		offset: Writable<number>;
 		aspectRatio: number;
 		widthCorrectionFactor?: number;
-		currentAspectRatio?: number;
+		currentAspectRatio: number;
+		updateBaseAspectRatio: () => void;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
@@ -201,15 +201,15 @@
 					const containerAspectRatio = div?.clientHeight
 						? div?.clientWidth / div?.clientHeight
 						: this.aspectRatio;
+					this.updateBaseAspectRatio();
+					return containerAspectRatio;
+				},
+
+				updateBaseAspectRatio() {
+					const containerAspectRatio = div?.clientHeight && div?.clientWidth / div?.clientHeight;
 					if (containerAspectRatio && hideControls) {
-						// ABCJS renders SVGs at a slightly different aspect
-						// ratio in the renderAbc('*', ...) call compared to on
-						// the page. In order to make sure the SVGs fit as well as
-						// possible, we can update the aspect ratio of the tune
-						// when we know it for reals.
 						this.aspectRatio = containerAspectRatio;
 					}
-					return containerAspectRatio;
 				}
 			};
 		})
@@ -272,6 +272,12 @@
 		}
 		if (!hideControls && $maxWidth !== null) {
 			return manuallyPaginate();
+		}
+		for (const tune of tunes) {
+			if (!tune.div) {
+				return;
+			}
+			tune.updateBaseAspectRatio();
 		}
 		autoZooming = true;
 		visible = new Array(tunes.length).fill(true);
