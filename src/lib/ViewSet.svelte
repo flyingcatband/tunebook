@@ -224,6 +224,53 @@
 	let maxWidth: Writable<number | null> = $derived(
 		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
 	);
+	let showToast = $state(false);
+	let toastMessage = $state('');
+
+	function triggerToast(message: string) {
+		toastMessage = message;
+		showToast = true;
+		setTimeout(() => (showToast = false), 3000);
+	}
+
+	let initialDistance: number | null = null;
+	let initialMaxWidth: number | null = null;
+
+	function getDistance(touches: TouchList) {
+		const [touch1, touch2] = [touches[0], touches[1]];
+		return Math.sqrt(
+			Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
+		);
+	}
+
+	function handleTouchStart(event: TouchEvent) {
+		if (event.touches.length === 2) {
+			if ($autozoomEnabled) {
+				triggerToast('Disable "Fit to page" to pinch-zoom');
+				return;
+			}
+			initialDistance = getDistance(event.touches);
+			initialMaxWidth = $maxWidth;
+		}
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (event.touches.length === 2 && initialDistance && initialMaxWidth) {
+			event.preventDefault();
+			const newDistance = getDistance(event.touches);
+			const scale = newDistance / initialDistance;
+			let newMaxWidth = Math.round(initialMaxWidth * scale);
+			newMaxWidth = Math.max(20, Math.min(95, newMaxWidth));
+			$maxWidth = newMaxWidth;
+		}
+	}
+
+	function handleTouchEnd(event: TouchEvent) {
+		if (event.touches.length < 2) {
+			initialDistance = null;
+			initialMaxWidth = null;
+		}
+	}
 
 	$effect(() => {
 		if (!hideControls) {
@@ -405,7 +452,14 @@
 		</div>
 	</div>
 
-	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth! <= 50}>
+	<div
+		class="tunes"
+		bind:this={tunesContainer}
+		class:two-column={$maxWidth! <= 50}
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+	>
 		{#each tunes as tune, i}
 			<div
 				class="tune"
@@ -482,7 +536,23 @@
 	</button>
 {/if}
 
+{#if showToast}
+	<div class="toast">{toastMessage}</div>
+{/if}
+
 <style>
+	.toast {
+		position: fixed;
+		bottom: 2rem;
+		left: 50%;
+		transform: translateX(-50%);
+		background-color: rgba(0, 0, 0, 0.7);
+		color: white;
+		padding: 1rem 2rem;
+		border-radius: 0.5rem;
+		z-index: 100;
+	}
+
 	.toggle-controls {
 		position: absolute;
 		top: 0;
