@@ -225,6 +225,135 @@
 		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
 	);
 
+	let initialDistance: number | null = null;
+	let initialMaxWidth: number | null = null;
+	let isPinching = false;
+
+	let lastTapTime = 0;
+	let lastTapTouches = 0;
+	let swipeStartX: number | null = null;
+	let swipeStartY: number | null = null;
+	let swipeStartTime: number | null = null;
+	let toastMessage = $state('');
+	let toastVisible = $state(false);
+
+	function getDistance(touches: TouchList) {
+		const [touch1, touch2] = [touches[0], touches[1]];
+		return Math.sqrt(
+			Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
+		);
+	}
+
+	function showToast(message: string) {
+		toastMessage = message;
+		toastVisible = true;
+		setTimeout(() => {
+			toastVisible = false;
+		}, 2000);
+	}
+
+	function handleTouchStart(event: TouchEvent) {
+		const currentTime = Date.now();
+		const touches = event.touches.length;
+
+		if (touches === 2) {
+			// Two-finger double tap detection
+			if (currentTime - lastTapTime < 300 && lastTapTouches === 2) {
+				event.preventDefault();
+				$autozoomEnabled = true;
+				fitToPage();
+				showToast('Fit to page enabled');
+				return;
+			}
+			lastTapTime = currentTime;
+			lastTapTouches = touches;
+
+			// Pinch gesture setup
+			initialDistance = getDistance(event.touches);
+			initialMaxWidth = $maxWidth;
+			isPinching = false;
+		} else if (touches === 1) {
+			// Single finger swipe setup
+			const touch = event.touches[0];
+			swipeStartX = touch.clientX;
+			swipeStartY = touch.clientY;
+			swipeStartTime = currentTime;
+		}
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (event.touches.length === 2 && initialDistance && initialMaxWidth) {
+			event.preventDefault();
+			const newDistance = getDistance(event.touches);
+
+			if (!isPinching) {
+				const distanceChange = Math.abs(newDistance - initialDistance);
+				const DEAD_ZONE = 20; // pixels
+				if (distanceChange > DEAD_ZONE) {
+					isPinching = true;
+					if ($autozoomEnabled) {
+						$autozoomEnabled = false;
+						showToast('Manual zoom enabled');
+					}
+					// To avoid a jump, we should adjust the initial values
+					initialDistance = newDistance;
+					initialMaxWidth = $maxWidth;
+				}
+			}
+
+			if (isPinching && initialMaxWidth !== null) {
+				const scale = newDistance / initialDistance;
+				let newMaxWidth = Math.round(initialMaxWidth * scale);
+				newMaxWidth = Math.max(20, Math.min(95, newMaxWidth));
+				$maxWidth = newMaxWidth;
+			}
+		}
+	}
+
+	function handleTouchEnd(event: TouchEvent) {
+		const currentTime = Date.now();
+
+		// Handle swipe gesture
+		if (
+			event.changedTouches.length === 1 &&
+			swipeStartX !== null &&
+			swipeStartY !== null &&
+			swipeStartTime !== null
+		) {
+			const touch = event.changedTouches[0];
+			const deltaX = touch.clientX - swipeStartX;
+			const deltaY = touch.clientY - swipeStartY;
+			const deltaTime = currentTime - swipeStartTime;
+
+			const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+			const velocity = distance / deltaTime;
+
+			// Detect horizontal swipe (minimum distance, speed, and horizontal dominance)
+			if (distance > 50 && velocity > 0.3 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+				event.preventDefault();
+				if (deltaX > 0) {
+					// Swipe right - previous page
+					previousPage();
+				} else {
+					// Swipe left - next page
+					nextPage();
+				}
+			}
+		}
+
+		// Reset swipe tracking
+		swipeStartX = null;
+		swipeStartY = null;
+		swipeStartTime = null;
+
+		// Reset pinch tracking
+		if (event.touches.length < 2) {
+			initialDistance = null;
+			initialMaxWidth = null;
+			isPinching = false;
+		}
+	}
+
 	$effect(() => {
 		if (!hideControls) {
 			tunes.forEach((tune) => {
@@ -405,7 +534,14 @@
 		</div>
 	</div>
 
-	<div class="tunes" bind:this={tunesContainer} class:two-column={$maxWidth! <= 50}>
+	<div
+		class="tunes"
+		bind:this={tunesContainer}
+		class:two-column={$maxWidth! <= 50}
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+	>
 		{#each tunes as tune, i}
 			<div
 				class="tune"
@@ -480,6 +616,10 @@
 	<button onclick={nextPage} class="page next" aria-label="Next page">
 		<div></div>
 	</button>
+{/if}
+
+{#if toastVisible}
+	<div class="toast">{toastMessage}</div>
 {/if}
 
 <style>
@@ -624,5 +764,39 @@
 	}
 	.loading {
 		display: none;
+	}
+
+	.toast {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		background: rgba(0, 0, 0, 0.8);
+		color: white;
+		padding: 0.8rem 1.2rem;
+		border-radius: 0.5rem;
+		font-size: 1rem;
+		z-index: 1000;
+		pointer-events: none;
+		animation: fadeInOut 2s ease-in-out;
+	}
+
+	@keyframes fadeInOut {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.8);
+		}
+		20% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+		80% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1);
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.8);
+		}
 	}
 </style>
