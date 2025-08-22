@@ -110,6 +110,9 @@
 
 		for (let i = startIndex; i < tunes.length; i++) {
 			const tune = tunes[i];
+			if (tune.hidden && hideControls) {
+				continue;
+			}
 			const tuneHeight = columnWidth / tune.currentAspectRatio!;
 			if (i > startIndex && columnHeights[columnIndex] + tuneHeight > availableHeight) {
 				columnIndex++;
@@ -177,6 +180,7 @@
 		widthCorrectionFactor?: number;
 		currentAspectRatio: number;
 		updateBaseAspectRatio: () => void;
+		hidden: boolean;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
@@ -186,6 +190,7 @@
 			let width = svg?.getAttribute('width') ? parseFloat(svg.getAttribute('width')!) : 0;
 			let height = svg?.getAttribute('height') ? parseFloat(svg.getAttribute('height')!) : 0;
 			let div = $state<Element>();
+			let hidden = $state(false);
 			return {
 				...tune,
 				get div() {
@@ -193,6 +198,12 @@
 				},
 				set div(value) {
 					div = value;
+				},
+				get hidden() {
+					return hidden;
+				},
+				set hidden(value) {
+					hidden = value;
 				},
 				originalKey: abcDetails?.getKeySignature(),
 				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
@@ -236,6 +247,23 @@
 	let swipeStartTime: number | null = null;
 	let toastMessage = $state('');
 	let toastVisible = $state(false);
+
+	// Check if there are more non-hidden tunes to display
+	let hasMoreTunes = $derived.by(() => {
+		if (!hideControls) return !visible[visible.length - 1];
+
+		// When controls are hidden, check if there are any non-hidden tunes after the last visible one
+		const lastVisibleIndex = visible.lastIndexOf(true);
+		if (lastVisibleIndex === -1) return false;
+
+		// Check if any tunes after the last visible one are not hidden
+		for (let i = lastVisibleIndex + 1; i < tunes.length; i++) {
+			if (!tunes[i].hidden) {
+				return true;
+			}
+		}
+		return false;
+	});
 
 	function getDistance(touches: TouchList) {
 		const [touch1, touch2] = [touches[0], touches[1]];
@@ -369,7 +397,7 @@
 	$effect(() => {
 		if ($autozoomEnabled) {
 			if (hideControls || $maxWidth === null) {
-				visible = new Array(tunes.length).fill(true);
+				visible = tunes.map((tune) => (hideControls ? !tune.hidden : true));
 				displayFrom = [0];
 			}
 		}
@@ -409,7 +437,7 @@
 			tune.updateBaseAspectRatio();
 		}
 		autoZooming = true;
-		visible = new Array(tunes.length).fill(true);
+		visible = tunes.map((tune) => (hideControls ? !tune.hidden : true));
 
 		// Wait for the tunesContainer to have a height before calculating the best zoom level
 		await new Promise<void>((resolve) => {
@@ -438,14 +466,30 @@
 			return;
 		}
 
-		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
+		let bestMaxWidth = calculateMaximumWidth(
+			hideControls ? tunes.filter((tune) => !tune.hidden) : tunes,
+			availableWidth,
+			availableHeight
+		);
 		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
 		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
 	}
 
 	function nextPage() {
-		if (!visible[visible.length - 1]) {
-			displayFrom = [...displayFrom, visible.lastIndexOf(true) + 1];
+		if (hasMoreTunes) {
+			const lastVisibleIndex = visible.lastIndexOf(true);
+			let nextStartIndex = lastVisibleIndex + 1;
+
+			// When controls are hidden, skip to the next non-hidden tune
+			if (hideControls) {
+				while (nextStartIndex < tunes.length && tunes[nextStartIndex].hidden) {
+					nextStartIndex++;
+				}
+			}
+
+			if (nextStartIndex < tunes.length) {
+				displayFrom = [...displayFrom, nextStartIndex];
+			}
 		}
 	}
 
@@ -545,7 +589,8 @@
 		{#each tunes as tune, i}
 			<div
 				class="tune"
-				class:hidden={!visible[i]}
+				class:hidden={!visible[i] || (tune.hidden && hideControls)}
+				class:grayed-out={tune.hidden && !hideControls}
 				style="max-width: {$maxWidth}vw"
 				class:loading={!$maxWidth}
 				bind:this={tune.div}
@@ -587,6 +632,14 @@
 						Copy ABC
 					</button>
 				{/if}
+				<button
+					class:hidden={hideControls}
+					onclick={() => {
+						tune.hidden = !tune.hidden;
+					}}
+				>
+					{tune.hidden ? 'Show' : 'Hide'} tune
+				</button>
 				<div
 					style="max-width: {($maxWidth || 0) *
 						(!hideControls && tune.widthCorrectionFactor ? tune.widthCorrectionFactor : 1)}vw"
@@ -612,7 +665,7 @@
 		<div></div>
 	</button>
 {/if}
-{#if !visible[visible.length - 1]}
+{#if hasMoreTunes}
 	<button onclick={nextPage} class="page next" aria-label="Next page">
 		<div></div>
 	</button>
@@ -747,6 +800,15 @@
 	.tune {
 		margin: 0 auto;
 		width: 90%;
+	}
+
+	.grayed-out {
+		opacity: 0.3;
+		pointer-events: none;
+	}
+
+	.grayed-out button {
+		pointer-events: auto;
 	}
 
 	p {
