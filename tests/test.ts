@@ -143,10 +143,10 @@ test('autozoom restores zoom to correct value when navigating from manually zoom
 
 	// Check one of the tunes actually appears exactly the same before and after reload
 	const firstTuneOnPage = page.getByRole('img').first();
-	await expect(firstTuneOnPage).toContainText('The Old Morpeth Rant');
+	await expect(firstTuneOnPage).toContainText("Barbara Needham's");
 	const tuneBB = await firstTuneOnPage.boundingBox();
 	await page.reload();
-	await expect(page.getByText('The Old Morpeth Rant', { exact: true })).toBeInViewport();
+	await expect(page.getByText("Barbara Needham's", { exact: true })).toBeInViewport();
 	const tuneBB2 = await firstTuneOnPage.boundingBox();
 	expect(tuneBB!.width).toEqual(tuneBB2!.width);
 
@@ -552,6 +552,15 @@ test('pages remain the same after navigating away and back', async ({ page }) =>
 	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
 });
 
+test('fit to page does not cause page to overflow', async ({ page }) => {
+	await page.setViewportSize({ width: 1504, height: 842 });
+	await page.goto('/Jigs-3-More-jigs');
+	await expect(page.getByRole('img').first()).toBeInViewport();
+
+	await expect(await page.evaluate(() => document.body.scrollWidth)).toEqual(1504);
+	await expect(await page.evaluate(() => document.body.scrollHeight)).toEqual(842);
+});
+
 // Skip the property-based tests for now since they don't reliably work on CI,
 // but the failures are very minor and not worth fixing right now.
 describe('properties', () => {
@@ -627,6 +636,25 @@ describe('properties', () => {
 			timeout: TEST_TIMEOUT_MILLIS,
 			interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 		});
+	});
+
+	test('fitToPage does not cause page to overflow', async ({ page }) => {
+		await fc.assert(
+			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
+				await page.setViewportSize({ width, height });
+				await page.goto('/Jigs-3-More-jigs');
+				await expect(page.getByRole('img').first()).toBeInViewport();
+
+				await expect(await page.evaluate(() => document.body.scrollWidth)).toEqual(width);
+				await expect(await page.evaluate(() => document.body.scrollHeight)).toEqual(height);
+				await page.evaluate(() => localStorage.clear());
+			}),
+
+			{
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
+			}
+		);
 	});
 
 	test.skip(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {

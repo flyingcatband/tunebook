@@ -5,8 +5,9 @@
 	import Tune from '$lib/Tune.svelte';
 	import { type Writable } from 'svelte/store';
 	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { untrack, type Snippet } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
+	import { BUILD_DATE } from './build-info.js';
 
 	const { renderAbc } = pkg;
 	import { onMount } from 'svelte';
@@ -174,9 +175,8 @@
 		originalKey?: KeySignature;
 		offset: Writable<number>;
 		aspectRatio: number;
-		widthCorrectionFactor?: number;
 		currentAspectRatio: number;
-		updateBaseAspectRatio: () => void;
+		updateBaseAspectRatio: () => boolean;
 	};
 
 	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
@@ -186,6 +186,7 @@
 			let width = svg?.getAttribute('width') ? parseFloat(svg.getAttribute('width')!) : 0;
 			let height = svg?.getAttribute('height') ? parseFloat(svg.getAttribute('height')!) : 0;
 			let div = $state<Element>();
+			let updatedAspectRatio = false;
 			return {
 				...tune,
 				get div() {
@@ -209,7 +210,9 @@
 					const containerAspectRatio = div?.clientHeight && div?.clientWidth / div?.clientHeight;
 					if (containerAspectRatio && hideControls) {
 						this.aspectRatio = containerAspectRatio;
+						updatedAspectRatio = true;
 					}
+					return updatedAspectRatio;
 				}
 			};
 		})
@@ -355,18 +358,6 @@
 	}
 
 	$effect(() => {
-		if (!hideControls) {
-			tunes.forEach((tune) => {
-				if (tune.div && tune.aspectRatio && !tune.widthCorrectionFactor) {
-					const rect = tune.div.getBoundingClientRect();
-					const currentAspectRatio = rect.width / rect.height;
-					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
-				}
-			});
-		}
-	});
-
-	$effect(() => {
 		if ($autozoomEnabled) {
 			if (hideControls || $maxWidth === null) {
 				visible = new Array(tunes.length).fill(true);
@@ -395,6 +386,7 @@
 		tunes;
 		displayFrom = [0];
 	});
+	let hasTrueAspectRatio = $state(false);
 	async function fitToPage() {
 		if (!$autozoomEnabled || autoZooming || !BROWSER) {
 			return;
@@ -402,12 +394,14 @@
 		if (!hideControls && $maxWidth !== null) {
 			return manuallyPaginate();
 		}
+		let hasTrueAspectRatioInner = true;
 		for (const tune of tunes) {
 			if (!tune.div) {
 				return;
 			}
-			tune.updateBaseAspectRatio();
+			hasTrueAspectRatioInner = hasTrueAspectRatioInner && tune.updateBaseAspectRatio();
 		}
+
 		autoZooming = true;
 		visible = new Array(tunes.length).fill(true);
 
@@ -428,6 +422,13 @@
 
 		updateMaxWidth();
 		autoZooming = false;
+		hasTrueAspectRatio = hasTrueAspectRatioInner;
+		if (!hasTrueAspectRatioInner) {
+			// If we didn't have a true aspect ratio for all tunes, we need to
+			// re-fit now that we do
+			await tick();
+			untrack(fitToPage);
+		}
 	}
 
 	function updateMaxWidth() {
@@ -483,6 +484,7 @@
 		<span class="key-reminder"
 			>Folder key: {ROOTS[(ROOTS.length + 3 - $globalTransposition) % ROOTS.length]}</span
 		>
+		<span class="build-info">Built: {new Date(BUILD_DATE).toLocaleString()}</span>
 		<button
 			class="toggle-controls"
 			onclick={async () => {
@@ -588,8 +590,8 @@
 					</button>
 				{/if}
 				<div
-					style="max-width: {($maxWidth || 0) *
-						(!hideControls && tune.widthCorrectionFactor ? tune.widthCorrectionFactor : 1)}vw"
+					class:hideme={$autozoomEnabled && hideControls && !hasTrueAspectRatio}
+					style="max-width: {$maxWidth}vw"
 				>
 					<Tune
 						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
@@ -630,6 +632,9 @@
 		transform: translateX(-50%);
 		font-size: 1.5rem;
 		padding: 1rem;
+	}
+	.hideme {
+		visibility: hidden;
 	}
 	button:not(.page) {
 		position: relative;
@@ -764,6 +769,14 @@
 	}
 	.loading {
 		display: none;
+	}
+
+	.build-info {
+		color: #666;
+		font-size: 0.7rem;
+		right: 1.25rem;
+		position: absolute;
+		top: 2.5rem;
 	}
 
 	.toast {

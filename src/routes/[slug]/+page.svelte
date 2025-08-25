@@ -12,7 +12,7 @@
 <ViewSet
 	{set}
 	folderName={data.folder.name}
-	fontFamily="sans-serif"
+	fontFamily="Lato, sans-serif"
 	displayAbcFields="TNCRO"
 	showClefSwitcher
 >
