@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store';
-	import { calculateMaximumWidth } from './fitting';
+	import { calculateMaximumWidth, manuallyPaginate } from './fitting';
 	import { keyedLocalStorage } from './keyedLocalStorage';
 	import Tune from './Tune.svelte';
 	import { type Set } from './types';
@@ -62,6 +62,15 @@
 		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
 	);
 	let width = $derived($autozoomEnabled ? fitToPageWidth : $manualWidth);
+	let currentPage = $state(0);
+	let pages = $derived(
+		manuallyPaginate(visibleTunes, containerWidth, containerHeight, $manualWidth) || []
+	);
+	let currentPageTunes = $derived(
+		pages?.[currentPage] && !$autozoomEnabled
+			? visibleTunes.slice(pages[currentPage].start, pages[currentPage].end + 1)
+			: visibleTunes
+	);
 
 	function toggleHidden(tune: Set['content'][number]) {
 		if (hiddenTuneSlugs.includes(tune.slug)) {
@@ -75,16 +84,27 @@
 		const previousWidth = width || 25;
 		$autozoomEnabled = false;
 		$manualWidth = previousWidth + 5;
+		// TODO consider trying to preserve which page is current
 	}
 
 	function zoomOut() {
 		const previousWidth = width || 25;
 		$autozoomEnabled = false;
 		$manualWidth = previousWidth - 5;
+		// TODO consider trying to preserve which page is current
 	}
 
 	function fitToPage() {
 		$autozoomEnabled = true;
+		currentPage = 0;
+	}
+
+	function nextPage() {
+		currentPage += 1;
+	}
+
+	function previousPage() {
+		currentPage -= 1;
 	}
 
 	onMount(() => {
@@ -137,8 +157,18 @@
 		>{controlsVisible ? 'Hide' : 'Show'} controls</button
 	>
 </div>
+{#if currentPage > 0}
+	<button onclick={previousPage} class="page back" aria-label="Previous page">
+		<div></div>
+	</button>
+{/if}
+{#if pages.length > currentPage + 1}
+	<button onclick={nextPage} class="page next" aria-label="Next page">
+		<div></div>
+	</button>
+{/if}
 <div class="tunes" bind:this={tunesContainer}>
-	{#each visibleTunes as tune (tune.slug)}
+	{#each currentPageTunes as tune (tune.slug)}
 		{@const thisTuneHidden = hiddenTuneSlugs.includes(tune.slug)}
 		<div class="tune" style="width: {width}vw" class:hidden={thisTuneHidden}>
 			<Tune
@@ -175,6 +205,7 @@
 		margin-top: 2rem;
 		height: calc(100dvh - 2rem);
 		width: 100dvw;
+		max-width: 100dvw;
 		display: flex;
 		flex-direction: column;
 		flex-wrap: wrap;
@@ -185,5 +216,41 @@
 		right: 0.5rem;
 		top: 0.5rem;
 		z-index: 10;
+	}
+	/* PAGE TURN BUTTONS */
+	button.page {
+		position: fixed;
+		bottom: 0;
+		height: 100%;
+		width: min(15%, 10vw);
+		border: none;
+		background: none;
+	}
+
+	button.back {
+		left: 0;
+	}
+
+	button.next {
+		right: 0;
+	}
+
+	button.page div {
+		width: 0;
+		height: 0;
+		border-top: 30px solid transparent;
+		border-bottom: 30px solid transparent;
+	}
+
+	button.page.back div {
+		border-right: 30px solid lightgray;
+		position: absolute;
+		left: 0.5em;
+	}
+
+	button.page.next div {
+		border-left: 30px solid lightgray;
+		position: absolute;
+		right: 0.5em;
 	}
 </style>
