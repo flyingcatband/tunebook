@@ -8,6 +8,7 @@
 	import abcjsPkg, { type KeySignature } from 'abcjs';
 	import { BROWSER } from 'esm-env';
 	import KeySelect from './KeySelect.svelte';
+
 	const { renderAbc } = abcjsPkg;
 	interface Props {
 		/** The name of the tunebook you're displaying, used in the page title */
@@ -106,6 +107,7 @@
 			return manuallyPaginate(visibleTunes, containerWidth, containerHeight, $manualWidth) || [];
 		}
 	});
+
 	let currentPageTunes = $derived(
 		pages?.[currentPage] && !$autozoomEnabled
 			? visibleTunes.slice(pages[currentPage].start, pages[currentPage].end + 1)
@@ -352,6 +354,23 @@
 			controlsVisible = false;
 		}
 	}
+
+	function copy(text: string) {
+		return (e: MouseEvent) => {
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(text).then(() => {
+					showToast('ABC copied to clipboard');
+					const thisButton = e.target;
+					if (thisButton != null) {
+						thisButton.textContent = 'Copied!';
+						setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
+					}
+				});
+			} else {
+				showToast('Clipboard API not supported');
+			}
+		};
+	}
 </script>
 
 {#if !preventWakelock}
@@ -409,40 +428,42 @@
 					}}
 				/>
 				{#if controlsVisible}
-					{#if tune.originalKey}
-						<span class="original-key">
-							<KeySelect
-								transposition={tune.offset}
-								originalKey={tune.originalKey}
-								tuneSlug={tune.slug}
-							/>
-						</span>
-					{/if}
-					{#if !hideCopyAbc}
-						<button
-							id={`copy-${tune.slug}`}
-							class="copy-abc"
-							style="bottom: 2.5em; left: 0; right: auto"
-							onclick={async () => {
-								try {
-									await navigator.clipboard.writeText(tune.abc);
-									const thisButton = document.getElementById(`copy-${tune.slug}`);
-									if (thisButton != null) {
-										thisButton.textContent = 'Copied!';
-										setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
-									}
-								} catch (e) {
-									console.error(e);
-								}
-							}}
+					<div class="tune-controls">
+						{#if tune.originalKey}
+							<span class="original-key">
+								<KeySelect
+									transposition={tune.offset}
+									originalKey={tune.originalKey}
+									tuneSlug={tune.slug}
+								/>
+							</span>
+						{/if}
+						<button onclick={() => tune.offset.update((o) => o - 12)}> -1 octave </button>
+						<button onclick={() => tune.offset.update((o) => o + 12)}> +1 octave </button>
+						{#if !hideCopyAbc}
+							<button id={`copy-${tune.slug}`} class="copy-abc" onclick={copy(tune.abc)}>
+								Copy ABC
+							</button>
+						{/if}
+						<button onclick={() => toggleHidden(tune)}
+							>{thisTuneHidden ? 'Show' : 'Hide'} tune</button
 						>
-							Copy ABC
-						</button>
-					{/if}
-					<button style="bottom: 0.5em" onclick={() => toggleHidden(tune)}
-						>{thisTuneHidden ? 'Show' : 'Hide'} tune</button
-					>
+					</div>
 				{/if}
+			</div>
+		{/each}
+		{#each tunes.filter((t) => !currentPageTunes.includes(t) && !t.aspectRatio) as tune}
+			<div style="display: none">
+				<Tune
+					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+					{fontFamily}
+					tuneOffset={tune.offset}
+					globalTransposition={$globalTransposition}
+					onrerenderedAbc={(aspectRatio) => {
+						tune.aspectRatio = aspectRatio;
+						aspectRatioRecalculated++;
+					}}
+				/>
 			</div>
 		{/each}
 	</div>
@@ -470,7 +491,6 @@
 		display: grid;
 		height: 100svh;
 		width: 100svw;
-		padding-top: 1rem;
 		box-sizing: border-box;
 		max-width: 100svw;
 	}
@@ -500,17 +520,13 @@
 		grid-template-areas: 'notes tunes';
 	}
 
-	.original-key {
-		position: absolute;
-		bottom: 2.5rem;
-		right: 0.5rem;
+	.original-key :global(select) {
+		font-size: 1rem;
 		background: white;
-		padding: 0.1rem 0.3rem;
+		border: 1px solid rgb(156, 156, 156);
 		border-radius: 0.3rem;
-		font-size: 0.8rem;
-		box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 	}
-	.tune button {
+	.tune .tune-controls {
 		position: absolute;
 		bottom: 0.5rem;
 		left: 0;

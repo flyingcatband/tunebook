@@ -302,7 +302,7 @@ test('transposition summary recognises Bb/Eb', async ({ page }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
-	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await page.getByRole('button', { name: 'Show controls' }).click();
 
 	let transpositionSubtitle = page.getByText('Transposed +2 (for B♭ instruments)', { exact: true });
 	await expect(transpositionSubtitle).not.toBeInViewport();
@@ -354,9 +354,10 @@ test('transposition selection quotes correct keys when globally transposed', asy
 		.toBe('2');
 
 	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 	await page.getByRole('button', { name: 'Show controls' }).tap();
 	// In the original implementation, the transposition selection would show 'E
-	// (+2)' here since the labels ignored the global transpotition. This meant
+	// (+2)' here since the labels ignored the global transposition. This meant
 	// the labels didn't match the actual key shown in the ABC.
 	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('F♯ (+2)');
 });
@@ -560,6 +561,7 @@ describe('properties', () => {
 	test.setTimeout(TEST_TIMEOUT_MILLIS * 3);
 	const propPageWidth = fc.noShrink(fc.integer({ min: 360, max: 2000 }));
 	const propPageHeight = fc.noShrink(fc.integer({ min: 800, max: 2000 }));
+	const propZoomClicks = fc.noShrink(fc.integer({ min: 1, max: 10 }));
 	test('fitToPage always shows all tunes', async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await fc.assert(
@@ -707,6 +709,59 @@ describe('properties', () => {
 					[363, 971],
 					[368, 1994]
 				]
+			}
+		);
+	});
+
+	test('tunes appear consecutively when spread across pages', async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+		await fc.assert(
+			fc.asyncProperty(
+				propPageWidth,
+				propPageHeight,
+				propZoomClicks,
+				async (width, height, zoomClicks) => {
+					const expectedTunes = [
+						'The Cliffs Of Moher',
+						'Spirit of the Dance',
+						'The Roman Wall',
+						'The Kesh'
+					];
+					let currentTune = 0;
+
+					await page.setViewportSize({ width, height });
+
+					await page.getByRole('button', { name: 'Show controls' }).click();
+					const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+
+					while ((await zoomIn.isEnabled()) && zoomClicks-- > 0) {
+						await zoomIn.click();
+					}
+
+					allPages: while (currentTune < expectedTunes.length) {
+						for (const tune of await page.getByRole('img').all()) {
+							const expectedTune = expectedTunes[currentTune++];
+							await expect(tune.getByText(expectedTune, { exact: true })).toBeInViewport();
+							if (currentTune >= expectedTunes.length) break allPages;
+						}
+
+						await page.getByRole('button', { name: 'Next page' }).click();
+					}
+
+					expect(currentTune).toEqual(expectedTunes.length);
+					expect(page.getByRole('button', { name: 'Next page' })).not.toBeVisible();
+
+					if (await page.getByRole('button', { name: 'Fit to page' }).isVisible()) {
+						await page.getByRole('button', { name: 'Fit to page' }).click();
+					}
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+				}
+			),
+
+			{
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 			}
 		);
 	});
