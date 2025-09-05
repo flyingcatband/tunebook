@@ -8,6 +8,7 @@
 	import abcjsPkg, { type KeySignature } from 'abcjs';
 	import { BROWSER } from 'esm-env';
 	import KeySelect from './KeySelect.svelte';
+	import type { MouseEventHandler } from 'svelte/elements';
 
 	const { renderAbc } = abcjsPkg;
 	interface Props {
@@ -72,7 +73,7 @@
 	let hiddenTuneSlugs: string[] = $state([]);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let controlsVisible = $state(false);
-	let pageContainer: Element = $state();
+	let pageContainer: Element | undefined = $state();
 
 	function normalise(transposition: number) {
 		const positiveValue = ((transposition % 12) + 12) % 12;
@@ -80,7 +81,7 @@
 	}
 
 	function singleValue<T>(values: T[]) {
-		const first = values.at(0);
+		const first = values.at(0) ?? null;
 		if (values.every((v) => v === first)) {
 			return first;
 		} else {
@@ -223,11 +224,14 @@
 	});
 
 	$effect(() => {
+		const currentSetTranspose = $setTranspose;
 		tunes.forEach((tune) => {
-			if ($setTranspose !== null) {
+			if (currentSetTranspose !== null) {
 				const offset = untrack(() => get(tune.offset));
-				if (normalise(offset) != $setTranspose) {
-					tune.offset.update((offset) => normalise(offset + ($setTranspose - normalise(offset))));
+				if (normalise(offset) != currentSetTranspose) {
+					tune.offset.update((offset) =>
+						normalise(offset + (currentSetTranspose - normalise(offset)))
+					);
 				}
 			}
 		});
@@ -399,12 +403,12 @@
 		}
 	}
 
-	function copy(text: string) {
-		return (e: MouseEvent) => {
+	function copy(text: string): MouseEventHandler<HTMLButtonElement> {
+		return (e) => {
 			if (navigator.clipboard) {
 				navigator.clipboard.writeText(text).then(() => {
 					showToast('ABC copied to clipboard');
-					const thisButton = e.target;
+					const thisButton = e.target as HTMLButtonElement | null;
 					if (thisButton != null) {
 						thisButton.textContent = 'Copied!';
 						setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
