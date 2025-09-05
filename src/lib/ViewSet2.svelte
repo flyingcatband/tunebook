@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Writable } from 'svelte/store';
+	import { get, writable, type Writable } from 'svelte/store';
 	import { calculateMaximumWidth, manuallyPaginate } from './fitting';
 	import { keyedLocalStorage } from './keyedLocalStorage';
 	import Tune from './Tune.svelte';
 	import { type Clef, type Set, type Tune as TuneTy } from './types';
-	import { onMount, type Snippet } from 'svelte';
+	import { onMount, untrack, type Snippet } from 'svelte';
 	import abcjsPkg, { type KeySignature } from 'abcjs';
 	import { BROWSER } from 'esm-env';
 	import KeySelect from './KeySelect.svelte';
@@ -72,6 +72,26 @@
 	let hiddenTuneSlugs: string[] = $state([]);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let controlsVisible = $state(false);
+	let pageContainer: Element = $state();
+
+	function normalise(transposition: number) {
+		const positiveValue = ((transposition % 12) + 12) % 12;
+		return positiveValue > 6 ? positiveValue - 12 : positiveValue;
+	}
+
+	function singleValue<T>(values: T[]) {
+		const first = values.at(0);
+		if (values.every((v) => v === first)) {
+			return first;
+		} else {
+			return null;
+		}
+	}
+
+	// Use a derived store for setTranspose so we can derive it from the tunes
+	// and replace it when the set changes (rather than clobbering the
+	// transposition of the set we navigate to)
+	let setTranspose = $derived(writable(singleValue(tunes.map((t) => normalise(get(t.offset))))));
 	let visibleTunes = $derived(
 		controlsVisible ? tunes : tunes.filter((t) => !hiddenTuneSlugs.includes(t.slug))
 	);
@@ -92,7 +112,7 @@
 		return keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_${name}`, defaultValue);
 	}
 
-	let orientation = $derived(containerHeight! >= containerWidth! ? 'portrait' : 'landscape');
+	let orientation = $derived(BROWSER && innerHeight >= innerWidth ? 'portrait' : 'landscape');
 	let autozoomEnabled = $derived(persistedLayoutVar(`autozoom`, true));
 	let manualWidth = $derived(persistedLayoutVar(`maxWidth`, 0));
 	let width = $derived($autozoomEnabled ? fitToPageWidth : $manualWidth);
@@ -201,6 +221,30 @@
 		set;
 		currentPage = 0;
 	});
+
+	$effect(() => {
+		tunes.forEach((tune) => {
+			if ($setTranspose !== null) {
+				const offset = untrack(() => get(tune.offset));
+				if (normalise(offset) != $setTranspose) {
+					tune.offset.update((offset) => normalise(offset + ($setTranspose - normalise(offset))));
+				}
+			}
+		});
+	});
+
+	$effect(() =>
+		tunes.forEach((tune) => {
+			tune.offset.subscribe((offset) => {
+				if (normalise(offset) !== $setTranspose) {
+					const possibleCorrectValue = untrack(() =>
+						singleValue(tunes.map((t) => normalise(get(t.offset))))
+					);
+					untrack(() => ($setTranspose = possibleCorrectValue));
+				}
+			});
+		})
+	);
 
 	onMount(() => {
 		if (!customElements.get('drab-wakelock')) {
@@ -371,15 +415,62 @@
 			}
 		};
 	}
+
+	function copyDebugInfo(e: MouseEvent) {
+		navigator.clipboard
+			.writeText(
+				JSON.stringify({
+					containerWidth,
+					containerHeight,
+					innerWidth,
+					innerHeight,
+					width,
+					autozoom: $autozoomEnabled,
+					ars: tunes.map((t) => t.aspectRatio)
+				})
+			)
+			.then(() => {
+				showToast('Debug info copied');
+			});
+	}
 </script>
 
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
 {/if}
 <svelte:window {onkeydown} />
-<div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
+<div
+	class="page-container"
+	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
+	bind:this={pageContainer}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight - pageContainer?.getBoundingClientRect().top}px` : ''}`}
+>
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
+			<button onclick={copyDebugInfo}>Grab debug info</button>
+			<label for="transpose-set">Transpose set</label>
+			<select bind:value={$setTranspose} id="transpose-set">
+				<option value={6}>+6</option>
+				<option value={5}>+5</option>
+				<option value={4}>+4</option>
+				<option value={3}>+3</option>
+				<option value={2}>+2 (Bb)</option>
+				<option value={1}>+1</option>
+				<option value={0}>Concert</option>
+				<option value={-1}>-1</option>
+				<option value={-2}>-2</option>
+				<option value={-3}>-3 (Eb)</option>
+				<option value={-4}>-4</option>
+				<option value={-5}>-5</option>
+			</select>
+			{#if showClefSwitcher}
+				<label for="clef-select">Clef</label>
+				<select id="clef-select" bind:value={$clef}>
+					<option value="global">Global ({$globalClef})</option>
+					<option value="treble">Treble</option>
+					<option value="bass">Bass</option>
+				</select>
+			{/if}
 			<span>Current zoom level {width}%</span>
 			{#if !$autozoomEnabled}
 				<button onclick={fitToPage}>Fit to page</button>
@@ -473,7 +564,7 @@
 			{@render children?.()}
 		</div>
 	{:else}
-		<div class="spacer" style="height: 3em;"></div>
+		<div class="spacer" style="height: 2em;"></div>
 	{/if}
 </div>
 
@@ -489,10 +580,9 @@
 
 	.page-container {
 		display: grid;
-		height: 100svh;
-		width: 100svw;
+		width: 100dvw;
 		box-sizing: border-box;
-		max-width: 100svw;
+		max-width: 100dvw;
 	}
 
 	.tunes {
@@ -515,8 +605,8 @@
 	}
 
 	.page-container.notes-beside {
-		grid-template-columns: var(--notes-width, 33svw) 1fr;
-		grid-template-rows: 1fr;
+		grid-template-columns: var(--notes-width, 33dvw) 1fr;
+		grid-template-rows: 1fr 2em;
 		grid-template-areas: 'notes tunes';
 	}
 
