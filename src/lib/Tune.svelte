@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { BROWSER } from 'esm-env';
-	import pkg from 'abcjs';
+	import pkg, { type Selector, type TuneObjectArray } from 'abcjs';
 	const { renderAbc } = pkg;
 	import { type Writable } from 'svelte/store';
 	import { tick, untrack } from 'svelte';
@@ -22,7 +22,8 @@
 		fontSize?: number;
 		titleSize?: number;
 		showTransposition?: boolean;
-		onrerenderedAbc?: (el: HTMLDivElement) => void;
+		renderedAbc?: TuneObjectArray;
+		onrerenderedAbc?: (aspectRatio: number) => void;
 	}
 
 	let {
@@ -34,14 +35,16 @@
 		fontSize = 12,
 		titleSize = fontSize + 6,
 		showTransposition = true,
+		renderedAbc = $bindable(),
 		onrerenderedAbc
 	}: Props = $props();
 
+	let aspectRatio = $state(0);
 	let svg: SVGElement | undefined = $state(undefined);
 	async function updateSvg() {
 		await tick();
 		if (dots) {
-			onrerenderedAbc?.(dots);
+			onrerenderedAbc?.(aspectRatio);
 		}
 		svg = dots?.getElementsByTagName('svg')?.[0];
 		if (typeof fontFamily !== 'undefined') {
@@ -76,33 +79,62 @@
 				)
 			: amendedAbc
 	);
+
+	function renderAbcWithFormatting(targetElement: Selector) {
+		return renderAbc(targetElement, moreAmendedAbc, {
+			format: fontFamily
+				? {
+						titlefont: `${fontFamily} Bold ${titleSize}`,
+						subtitlefont: `${fontFamily} ${fontSize}`,
+						composerfont: `${fontFamily} ${fontSize}`,
+						historyfont: `${fontFamily} ${fontSize}`,
+						partsfont: `${fontFamily} ${fontSize}`,
+						tempofont: `${fontFamily} ${fontSize}`,
+						infofont: `${fontFamily} ${fontSize}`,
+						gchordfont: `${fontFamily} ${fontSize}`,
+						annotationfont: `${fontFamily} ${fontSize}`,
+						textfont: `${fontFamily} ${fontSize}`,
+						vocalfont: `${fontFamily} ${fontSize}`,
+						wordsfont: `${fontFamily} ${fontSize}`
+					}
+				: {},
+			visualTranspose: globalTransposition + $tuneOffset,
+			selectTypes: false,
+			responsive: 'resize',
+			// This makes typescript happy that staffwidth is not undefined
+			// If staffwidth is defined, add it as a property, else splat {} to avoid adding staffwidth
+			...((staffwidth && { staffwidth }) || {})
+		});
+	}
+
 	$effect.pre(() => {
 		if (dots && BROWSER) {
-			renderAbc(dots, moreAmendedAbc, {
-				format: fontFamily
-					? {
-							titlefont: `${fontFamily} Bold ${titleSize}`,
-							subtitlefont: `${fontFamily} ${fontSize}`,
-							composerfont: `${fontFamily} ${fontSize}`,
-							historyfont: `${fontFamily} ${fontSize}`,
-							partsfont: `${fontFamily} ${fontSize}`,
-							tempofont: `${fontFamily} ${fontSize}`,
-							infofont: `${fontFamily} ${fontSize}`,
-							gchordfont: `${fontFamily} ${fontSize}`,
-							annotationfont: `${fontFamily} ${fontSize}`,
-							textfont: `${fontFamily} ${fontSize}`,
-							vocalfont: `${fontFamily} ${fontSize}`,
-							wordsfont: `${fontFamily} ${fontSize}`
-						}
-					: {},
-				visualTranspose: globalTransposition + $tuneOffset,
-				selectTypes: false,
-				responsive: 'resize',
-				// This makes typescript happy that staffwidth is not undefined
-				// If staffwidth is defined, add it as a property, else splat {} to avoid adding staffwidth
-				...((staffwidth && { staffwidth }) || {})
+			renderedAbc = renderAbcWithFormatting(dots);
+			untrack(() => {
+				const svg = renderedAbc![0]?.engraver?.renderer.paper.svg;
+				let [_0, _1, width, height] = svg
+					?.getAttribute('viewBox')
+					?.toString()
+					.split(' ')
+					.map(parseFloat) || [0, 0, 0, 0];
+				if (height > 0) {
+					aspectRatio = width / height;
+				}
+				untrack(updateSvg);
 			});
-			untrack(updateSvg);
+		} else {
+			untrack(() => {
+				renderedAbc = renderAbcWithFormatting('*');
+				const svg = renderedAbc[0]?.engraver?.renderer.paper.svg;
+				let [_0, _1, width, height] = svg
+					?.getAttribute('viewBox')
+					?.toString()
+					.split(' ')
+					.map(parseFloat) || [0, 0, 0, 0];
+				if (height > 0) {
+					aspectRatio = width / height;
+				}
+			});
 		}
 	});
 </script>
