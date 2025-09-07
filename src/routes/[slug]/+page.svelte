@@ -27,7 +27,7 @@
 			>--notes-width</code
 		>.
 	</p>
-</ViewSet>
+</ViewSet2>
 
 <style>
 	p {
