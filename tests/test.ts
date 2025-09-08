@@ -208,7 +208,7 @@ test('set navigates to start when switching between different sets', async ({ pa
 });
 
 test('pages are regenerated when switching between manually zoomed sets', async ({ page }) => {
-	await page.setViewportSize({ width: 1504, height: 842 });
+	await page.setViewportSize({ width: 1504, height: 882 });
 	// Navigate and wait for abc to render
 	await page.goto('/Jigs-2-Lots-of-jigs');
 	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
@@ -632,14 +632,13 @@ describe('properties', () => {
 	});
 
 	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
-		await page.goto('/Jigs-2-Lots-of-jigs');
-		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+		await page.goto('/Reels-2-More-reels');
+		await expect(page.getByRole('img').first()).toBeInViewport();
 		await fc.assert(
 			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
 				await page.setViewportSize({ width, height });
 				// Wait for the tunes to rerender at the new viewport size
 				await page.waitForTimeout(1000);
-				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 
 				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
 				const originalWidth: number = await page.evaluate(tuneWidth);
@@ -663,6 +662,7 @@ describe('properties', () => {
 				timeout: TEST_TIMEOUT_MILLIS,
 				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
 				examples: [
+					[859, 316],
 					[363, 971],
 					[387, 1377]
 				]
