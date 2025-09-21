@@ -1,6 +1,5 @@
 <script lang="ts">
 	import ViewSet from '$lib/ViewSet.svelte';
-	import ViewSet2 from '$lib/ViewSet2.svelte';
 	let { data } = $props();
 	let set = $derived(data.set);
 </script>
@@ -10,7 +9,7 @@
 	<a class="button" href="/{set.previousSlug}">Previous set</a>
 	<a class="button" href="/{set.nextSlug}">Next set</a>
 </nav>
-<ViewSet2
+<ViewSet
 	{set}
 	folderName={data.folder.name}
 	fontFamily="sans-serif"
@@ -28,7 +27,7 @@
 			>--notes-width</code
 		>.
 	</p>
-</ViewSet2>
+</ViewSet>
 
 <style>
 	p {

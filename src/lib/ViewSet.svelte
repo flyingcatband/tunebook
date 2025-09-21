@@ -1,17 +1,16 @@
 <script lang="ts">
+	import { get, writable, type Writable } from 'svelte/store';
+	import { calculateMaximumWidth, manuallyPaginate } from './fitting';
+	import { keyedLocalStorage } from './keyedLocalStorage';
+	import Tune from './Tune.svelte';
+	import { type Clef, type Set, type Tune as TuneTy } from './types';
+	import { onMount, untrack, type Snippet } from 'svelte';
+	import abcjsPkg, { type KeySignature } from 'abcjs';
 	import { BROWSER } from 'esm-env';
-	import pkg, { type KeySignature } from 'abcjs';
-	import KeySelect from '$lib/KeySelect.svelte';
-	import Tune from '$lib/Tune.svelte';
-	import { type Writable } from 'svelte/store';
-	import { keyedLocalStorage } from './keyedLocalStorage.js';
-	import { untrack, type Snippet } from 'svelte';
-	import type { Clef, Set, Tune as TuneTy } from './types/index.js';
+	import KeySelect from './KeySelect.svelte';
+	import type { MouseEventHandler } from 'svelte/elements';
 
-	const { renderAbc } = pkg;
-	import { onMount } from 'svelte';
-	import { calculateMaximumWidth } from './fitting.js';
-
+	const { renderAbc } = abcjsPkg;
 	interface Props {
 		/** The name of the tunebook you're displaying, used in the page title */
 		folderName?: string;
@@ -35,6 +34,9 @@
 		children: Snippet;
 	}
 
+	const MAX_WIDTH = 95;
+	const MIN_WIDTH = 25;
+
 	let {
 		children,
 		folderName = 'Tunebook',
@@ -47,95 +49,98 @@
 		hideCopyAbc = false
 	}: Props = $props();
 
-	let tunesContainerHeight: number = $state(0);
+	type ExtraTuneProps = {
+		originalKey?: KeySignature;
+		offset: Writable<number>;
+		aspectRatio: number;
+	};
 
-	onMount(() => {
-		if (!customElements.get('drab-wakelock')) {
-			import('drab/wakelock').then(({ WakeLock }) => {
-				customElements.define('drab-wakelock', WakeLock);
-			});
-		}
-
-		if (!BROWSER || !tunesContainer) return;
-
-		const resizeObserver = new ResizeObserver(() => {
-			const height = tunesContainer?.clientHeight;
-			if (height && hideControls) {
-				tunesContainerHeight = height;
-			}
-			if ($autozoomEnabled) {
-				fitToPage();
-			} else {
-				manuallyPaginate();
-			}
-		});
-
-		resizeObserver.observe(tunesContainer);
-
-		return () => {
-			resizeObserver.disconnect();
-		};
-	});
-	if (!displayAbcFields.match(/^[A-Z]*$/)) {
-		throw Error(`displayAbcFields should be a string of (uppercase) ABC field names`);
-	}
-
-	let innerHeight: number = $state(0),
-		innerWidth: number = $state(0);
-	let orientation = $derived(innerHeight >= innerWidth ? 'portrait' : 'landscape');
-	let slotFilled = $derived(children !== undefined);
-	let notesBeside = $derived(
-		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_notesBeside`, false)
+	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
+		(set?.content || []).map((tune) => {
+			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
+			return {
+				...tune,
+				originalKey: abcDetails?.getKeySignature(),
+				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
+				aspectRatio: 0
+			};
+		})
 	);
-	let displayFrom: number[] = $state([0]);
-	let visible: boolean[] = $state(new Array(set.content.length).fill(false));
 
-	function manuallyPaginate() {
-		if (!BROWSER || !tunesContainer) {
-			return;
-		}
+	let tunesContainer: HTMLDivElement | undefined = $state();
+	let containerWidth: number | undefined = $state();
+	let containerHeight: number | undefined = $state();
+	let hiddenTuneSlugs: string[] = $state([]);
+	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
+	let controlsVisible = $state(false);
+	let pageContainer: Element | undefined = $state();
 
-		const availableWidth = tunesContainer.clientWidth;
-		const availableHeight = tunesContainer.clientHeight;
-		if (!availableWidth || !availableHeight) return;
-
-		// Max width is a percentage of the viewport width, so we need to convert it to pixels
-		const columnWidth = innerWidth * ($maxWidth! / 100);
-		const numColumns = Math.max(1, Math.floor(availableWidth / columnWidth));
-
-		const newVisible = new Array(tunes.length).fill(false);
-		const columnHeights = new Array(numColumns).fill(0);
-		const startIndex = displayFrom.at(-1) ?? 0;
-		let columnIndex = 0;
-
-		for (let i = startIndex; i < tunes.length; i++) {
-			const tune = tunes[i];
-			const tuneHeight = columnWidth / tune.currentAspectRatio!;
-			if (i > startIndex && columnHeights[columnIndex] + tuneHeight > availableHeight) {
-				columnIndex++;
-			}
-			if (columnIndex >= numColumns) {
-				// No more columns available, so we can't display any more tunes
-				break;
-			}
-
-			// At this point, either the column is tall enough to fit the tune,
-			// or the tune is too tall to fit in any column, so we just put it
-			// in the first free column
-			columnHeights[columnIndex] += tuneHeight;
-			newVisible[i] = true;
-		}
-
-		visible = newVisible;
+	function normalise(transposition: number) {
+		const positiveValue = ((transposition % 12) + 12) % 12;
+		return positiveValue > 6 ? positiveValue - 12 : positiveValue;
 	}
 
-	let notesHidden = $derived(
-		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_notesHidden`, false)
+	function singleValue<T>(values: T[]) {
+		const first = values.at(0) ?? null;
+		if (values.every((v) => v === first)) {
+			return first;
+		} else {
+			return null;
+		}
+	}
+
+	// Use a derived store for setTranspose so we can derive it from the tunes
+	// and replace it when the set changes (rather than clobbering the
+	// transposition of the set we navigate to)
+	let setTranspose = $derived(writable(singleValue(tunes.map((t) => normalise(get(t.offset))))));
+	let visibleTunes = $derived(
+		controlsVisible ? tunes : tunes.filter((t) => !hiddenTuneSlugs.includes(t.slug))
+	);
+	let aspectRatioRecalculated = $state(0);
+	let slotFilled = $derived(children !== undefined);
+	let fitToPageWidth = $derived.by(() => {
+		aspectRatioRecalculated; // Recalculate when this changes
+		if (!containerWidth || !containerHeight) {
+			return 0;
+		} else {
+			const idealWidth = calculateMaximumWidth(visibleTunes, containerWidth, containerHeight);
+			const width = Math.floor(idealWidth / 5) * 5;
+			return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+		}
+	});
+
+	function persistedLayoutVar<T>(name: string, defaultValue: T) {
+		return keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_${name}`, defaultValue);
+	}
+
+	let orientation = $derived(BROWSER && innerHeight >= innerWidth ? 'portrait' : 'landscape');
+	let autozoomEnabled = $derived(persistedLayoutVar(`autozoom`, true));
+	let manualWidth = $derived(persistedLayoutVar(`maxWidth`, 0));
+	let width = $derived($autozoomEnabled ? fitToPageWidth : $manualWidth);
+	let widthAdjustment = $derived(containerWidth && innerWidth ? containerWidth / innerWidth : 1);
+	let currentPage = $state(0);
+	let pages = $derived.by(() => {
+		aspectRatioRecalculated; // Recalculate when this changes
+		if ($autozoomEnabled) {
+			// All tunes on one page
+			return [{ start: 0, end: visibleTunes.length - 1 }];
+		} else {
+			return manuallyPaginate(visibleTunes, containerWidth, containerHeight, $manualWidth) || [];
+		}
+	});
+
+	let currentPageTunes = $derived(
+		pages?.[currentPage] && !$autozoomEnabled
+			? visibleTunes.slice(pages[currentPage].start, pages[currentPage].end + 1)
+			: visibleTunes
 	);
 	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
 	let clef: Writable<Clef | 'global'> = $derived(
 		keyedLocalStorage(`${settingsScope}${set?.slug}_clef`, 'global')
 	);
+	let notesBeside = $derived(persistedLayoutVar(`notesBeside`, false));
+	let notesHidden = $derived(persistedLayoutVar(`notesHidden`, false));
+
 	let preservedFieldRegex = $derived(
 		new RegExp(
 			`^[XKML${displayAbcFields
@@ -167,66 +172,110 @@
 		}
 	}
 
-	const ROOTS = ['A', 'B♭', 'B', 'C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭'];
+	function toggleHidden(tune: Set['content'][number]) {
+		if (hiddenTuneSlugs.includes(tune.slug)) {
+			hiddenTuneSlugs = hiddenTuneSlugs.filter((slug) => tune.slug != slug);
+		} else {
+			hiddenTuneSlugs.push(tune.slug);
+		}
+	}
 
-	type ExtraTuneProps = {
-		div?: Element;
-		originalKey?: KeySignature;
-		offset: Writable<number>;
-		aspectRatio: number;
-		widthCorrectionFactor?: number;
-		currentAspectRatio: number;
-		updateBaseAspectRatio: () => void;
-	};
+	function zoomIn() {
+		const previousWidth = width || 25;
+		$autozoomEnabled = false;
+		$manualWidth = previousWidth + 5;
+	}
 
-	let tunes: (TuneTy & ExtraTuneProps)[] = $derived(
-		(set?.content || []).map((tune) => {
-			const abcDetails = (BROWSER || null) && renderAbc('*', tune.abc)[0];
-			const svg = abcDetails?.engraver?.renderer.paper.svg;
-			let width = svg?.getAttribute('width') ? parseFloat(svg.getAttribute('width')!) : 0;
-			let height = svg?.getAttribute('height') ? parseFloat(svg.getAttribute('height')!) : 0;
-			let div = $state<Element>();
-			return {
-				...tune,
-				get div() {
-					return div;
-				},
-				set div(value) {
-					div = value;
-				},
-				originalKey: abcDetails?.getKeySignature(),
-				offset: keyedLocalStorage(`${settingsScope}${set?.slug}_${tune.slug}_offset`, 0),
-				aspectRatio: width && height && width / height,
-				get currentAspectRatio() {
-					const containerAspectRatio = div?.clientHeight
-						? div?.clientWidth / div?.clientHeight
-						: this.aspectRatio;
-					this.updateBaseAspectRatio();
-					return containerAspectRatio;
-				},
+	function zoomOut() {
+		const currentVisibleTune = pages[currentPage]?.start || 0;
+		const previousWidth = width || 25;
+		$autozoomEnabled = false;
+		$manualWidth = previousWidth - 5;
+		// Ensure we stay on the same tune after zooming in
+		for (let i = 0; i < pages.length; i++) {
+			if (pages[i].start <= currentVisibleTune && pages[i].end >= currentVisibleTune) {
+				currentPage = i;
+				break;
+			}
+		}
+	}
 
-				updateBaseAspectRatio() {
-					const containerAspectRatio = div?.clientHeight && div?.clientWidth / div?.clientHeight;
-					if (containerAspectRatio && hideControls) {
-						this.aspectRatio = containerAspectRatio;
-					}
+	function fitToPage() {
+		$autozoomEnabled = true;
+		currentPage = 0;
+	}
+
+	function nextPage() {
+		if (currentPage + 1 < pages.length) {
+			currentPage += 1;
+		}
+	}
+
+	function previousPage() {
+		if (currentPage > 0) {
+			currentPage -= 1;
+		}
+	}
+
+	$effect(() => {
+		// Scroll to first page when using next/previous set buttons
+		set;
+		currentPage = 0;
+	});
+
+	$effect(() => {
+		const currentSetTranspose = $setTranspose;
+		tunes.forEach((tune) => {
+			if (currentSetTranspose !== null) {
+				const offset = untrack(() => get(tune.offset));
+				if (normalise(offset) != currentSetTranspose) {
+					tune.offset.update((offset) =>
+						normalise(offset + (currentSetTranspose - normalise(offset)))
+					);
 				}
-			};
+			}
+		});
+	});
+
+	$effect(() =>
+		tunes.forEach((tune) => {
+			tune.offset.subscribe((offset) => {
+				if (normalise(offset) !== $setTranspose) {
+					const possibleCorrectValue = untrack(() =>
+						singleValue(tunes.map((t) => normalise(get(t.offset))))
+					);
+					untrack(() => ($setTranspose = possibleCorrectValue));
+				}
+			});
 		})
 	);
 
-	let tunesContainer: Element | undefined = $state();
-	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
-	let hideControls = $state(true);
-	let autozoomEnabled = $derived(
-		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_autozoom`, true)
-	);
-	let maxWidth: Writable<number | null> = $derived(
-		keyedLocalStorage(`${settingsScope}${set?.slug}_${orientation}_maxWidth`, null)
-	);
+	onMount(() => {
+		if (!customElements.get('drab-wakelock')) {
+			import('drab/wakelock').then(({ WakeLock }) => {
+				customElements.define('drab-wakelock', WakeLock);
+			});
+		}
 
+		if (tunesContainer) {
+			const observer = new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					const { width, height } = entry.contentRect;
+					containerWidth = width;
+					containerHeight = height;
+				}
+			});
+			observer.observe(tunesContainer);
+
+			return () => {
+				observer.disconnect();
+			};
+		}
+	});
+
+	// Gestures for zooming and page turning
 	let initialDistance: number | null = null;
-	let initialMaxWidth: number | null = null;
+	let initialWidth: number | null = null;
 	let isPinching = false;
 
 	let lastTapTime = 0;
@@ -260,7 +309,6 @@
 			// Two-finger double tap detection
 			if (currentTime - lastTapTime < 300 && lastTapTouches === 2) {
 				event.preventDefault();
-				$autozoomEnabled = true;
 				fitToPage();
 				showToast('Fit to page enabled');
 				return;
@@ -270,7 +318,7 @@
 
 			// Pinch gesture setup
 			initialDistance = getDistance(event.touches);
-			initialMaxWidth = $maxWidth;
+			initialWidth = width;
 			isPinching = false;
 		} else if (touches === 1) {
 			// Single finger swipe setup
@@ -282,7 +330,7 @@
 	}
 
 	function handleTouchMove(event: TouchEvent) {
-		if (event.touches.length === 2 && initialDistance && initialMaxWidth) {
+		if (event.touches.length === 2 && initialDistance && initialWidth) {
 			event.preventDefault();
 			const newDistance = getDistance(event.touches);
 
@@ -291,21 +339,21 @@
 				const DEAD_ZONE = 20; // pixels
 				if (distanceChange > DEAD_ZONE) {
 					isPinching = true;
+					initialWidth = width;
 					if ($autozoomEnabled) {
 						$autozoomEnabled = false;
 						showToast('Manual zoom enabled');
 					}
 					// To avoid a jump, we should adjust the initial values
 					initialDistance = newDistance;
-					initialMaxWidth = $maxWidth;
 				}
 			}
 
-			if (isPinching && initialMaxWidth !== null) {
+			if (isPinching && initialWidth !== null) {
 				const scale = newDistance / initialDistance;
-				let newMaxWidth = Math.round(initialMaxWidth * scale);
-				newMaxWidth = Math.max(20, Math.min(95, newMaxWidth));
-				$maxWidth = newMaxWidth;
+				let newManualWidth = Math.round(initialWidth * scale);
+				newManualWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newManualWidth));
+				$manualWidth = newManualWidth;
 			}
 		}
 	}
@@ -340,122 +388,9 @@
 				}
 			}
 		}
-
-		// Reset swipe tracking
-		swipeStartX = null;
-		swipeStartY = null;
-		swipeStartTime = null;
-
-		// Reset pinch tracking
-		if (event.touches.length < 2) {
-			initialDistance = null;
-			initialMaxWidth = null;
-			isPinching = false;
-		}
 	}
 
-	$effect(() => {
-		if (!hideControls) {
-			tunes.forEach((tune) => {
-				if (tune.div && tune.aspectRatio && !tune.widthCorrectionFactor) {
-					const rect = tune.div.getBoundingClientRect();
-					const currentAspectRatio = rect.width / rect.height;
-					tune.widthCorrectionFactor = currentAspectRatio / tune.aspectRatio;
-				}
-			});
-		}
-	});
-
-	$effect(() => {
-		if ($autozoomEnabled) {
-			if (hideControls || $maxWidth === null) {
-				visible = new Array(tunes.length).fill(true);
-				displayFrom = [0];
-			}
-		}
-	});
-
-	$effect(() => {
-		if ($autozoomEnabled) {
-			if (hideControls || $maxWidth === null) {
-				fitToPage();
-			} else {
-				// If we're autozooming, we don't need to paginate manually
-				untrack(updateMaxWidth);
-				// But we still need to manually paginate if the maxWidth is set
-				manuallyPaginate();
-			}
-		} else {
-			manuallyPaginate();
-		}
-	});
-
-	let autoZooming = false;
-	$effect(() => {
-		tunes;
-		displayFrom = [0];
-	});
-	async function fitToPage() {
-		if (!$autozoomEnabled || autoZooming || !BROWSER) {
-			return;
-		}
-		if (!hideControls && $maxWidth !== null) {
-			return manuallyPaginate();
-		}
-		for (const tune of tunes) {
-			if (!tune.div) {
-				return;
-			}
-			tune.updateBaseAspectRatio();
-		}
-		autoZooming = true;
-		visible = new Array(tunes.length).fill(true);
-
-		// Wait for the tunesContainer to have a height before calculating the best zoom level
-		await new Promise<void>((resolve) => {
-			let attempts = 0;
-			const interval = setInterval(() => {
-				if (tunesContainer && tunesContainer.clientHeight > 0) {
-					clearInterval(interval);
-					resolve();
-				} else if (attempts > 10) {
-					clearInterval(interval);
-					resolve();
-				}
-				attempts++;
-			}, 50);
-		});
-
-		updateMaxWidth();
-		autoZooming = false;
-	}
-
-	function updateMaxWidth() {
-		const availableWidth = tunesContainer?.clientWidth;
-		const availableHeight = tunesContainerHeight || tunesContainer?.clientHeight;
-		if (!availableWidth || !availableHeight) {
-			autoZooming = false;
-			return;
-		}
-
-		let bestMaxWidth = calculateMaximumWidth(tunes, availableWidth, availableHeight);
-		bestMaxWidth = (bestMaxWidth * availableWidth) / innerWidth;
-		$maxWidth = Math.floor(bestMaxWidth / 5) * 5;
-	}
-
-	function nextPage() {
-		if (!visible[visible.length - 1]) {
-			displayFrom = [...displayFrom, visible.lastIndexOf(true) + 1];
-		}
-	}
-
-	function previousPage() {
-		if (displayFrom.length > 1) {
-			window.scrollBy(0, -25);
-			displayFrom.pop();
-		}
-	}
-
+	// Keyboard navigation (for page turner pedals)
 	function onkeydown(event: KeyboardEvent) {
 		if (event.target instanceof HTMLSelectElement) {
 			return;
@@ -464,191 +399,194 @@
 		} else if (['ArrowLeft', 'PageUp', 'ArrowUp'].includes(event.key)) {
 			previousPage();
 		} else if (event.key === 'Escape') {
-			hideControls = true;
+			controlsVisible = false;
 		}
 	}
-</script>
 
-<svelte:head>
-	<title>{set?.name} | {folderName}</title>
-</svelte:head>
+	function copy(text: string): MouseEventHandler<HTMLButtonElement> {
+		return (e) => {
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(text).then(() => {
+					showToast('ABC copied to clipboard');
+					const thisButton = e.target as HTMLButtonElement | null;
+					if (thisButton != null) {
+						thisButton.textContent = 'Copied!';
+						setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
+					}
+				});
+			} else {
+				showToast('Clipboard API not supported');
+			}
+		};
+	}
+
+	function copyDebugInfo(e: MouseEvent) {
+		navigator.clipboard
+			.writeText(
+				JSON.stringify({
+					containerWidth,
+					containerHeight,
+					innerWidth,
+					innerHeight,
+					width,
+					autozoom: $autozoomEnabled,
+					ars: tunes.map((t) => t.aspectRatio)
+				})
+			)
+			.then(() => {
+				showToast('Debug info copied');
+			});
+	}
+</script>
 
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
 {/if}
-<svelte:window bind:innerHeight bind:innerWidth {onkeydown} />
-
-<div class="page-container" class:notes-beside={$notesBeside && slotFilled && !$notesHidden}>
-	<div class="controls-container">
-		<span class="key-reminder"
-			>Folder key: {ROOTS[(ROOTS.length + 3 - $globalTransposition) % ROOTS.length]}</span
-		>
-		<button
-			class="toggle-controls"
-			onclick={async () => {
-				hideControls = !hideControls;
-			}}>{hideControls ? 'Show' : 'Hide'} controls</button
-		>
-		<div id="controls" class:hidden={hideControls}>
-			<button
-				onclick={() => {
-					$autozoomEnabled = false;
-					$maxWidth! -= 5;
-				}}
-				disabled={$maxWidth! <= 20}>Zoom out</button
-			>
-			<button
-				onclick={() => {
-					$autozoomEnabled = false;
-					$maxWidth! += 5;
-				}}
-				disabled={$maxWidth! >= 95}>Zoom in</button
-			>
-			{#if !$autozoomEnabled}
-				<button
-					onclick={() => {
-						$autozoomEnabled = true;
-					}}>Fit to page</button
-				>
-			{/if}
-			{#if slotFilled}
-				<button
-					onclick={() => {
-						$notesBeside = !$notesBeside;
-					}}>Notes {$notesBeside ? 'below' : 'beside'}</button
-				>
-				<button
-					onclick={() => {
-						$notesHidden = !$notesHidden;
-					}}>{$notesHidden ? 'Show' : 'Hide'} notes</button
-				>
-			{/if}
+<svelte:window {onkeydown} />
+<div
+	class="page-container"
+	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
+	bind:this={pageContainer}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight - pageContainer?.getBoundingClientRect().top}px` : ''}`}
+>
+	<div class="controls" class:open={controlsVisible}>
+		{#if controlsVisible}
+			<button onclick={copyDebugInfo}>Grab debug info</button>
+			<label for="transpose-set">Transpose set</label>
+			<select bind:value={$setTranspose} id="transpose-set">
+				<option value={6}>+6</option>
+				<option value={5}>+5</option>
+				<option value={4}>+4</option>
+				<option value={3}>+3</option>
+				<option value={2}>+2 (Bb)</option>
+				<option value={1}>+1</option>
+				<option value={0}>Concert</option>
+				<option value={-1}>-1</option>
+				<option value={-2}>-2</option>
+				<option value={-3}>-3 (Eb)</option>
+				<option value={-4}>-4</option>
+				<option value={-5}>-5</option>
+			</select>
 			{#if showClefSwitcher}
-				<select bind:value={$clef}>
-					<option value="global">Use global clef ({$globalClef})</option>
-					<option value="treble">Treble clef</option>
-					<option value="bass">Bass clef</option>
+				<label for="clef-select">Clef</label>
+				<select id="clef-select" bind:value={$clef}>
+					<option value="global">Global ({$globalClef})</option>
+					<option value="treble">Treble</option>
+					<option value="bass">Bass</option>
 				</select>
 			{/if}
-			<p>Current zoom level {$maxWidth}%</p>
-		</div>
+			<span>Current zoom level {width}%</span>
+			{#if !$autozoomEnabled}
+				<button onclick={fitToPage}>Fit to page</button>
+			{/if}
+			<button onclick={zoomOut} disabled={width <= MIN_WIDTH} aria-label="Zoom out">-</button>
+			<button onclick={zoomIn} disabled={width >= MAX_WIDTH} aria-label="Zoom in">+</button>
+			<button onclick={() => ($notesBeside = !$notesBeside)}
+				>Notes {$notesBeside ? 'below' : 'beside'}</button
+			>
+			<button onclick={() => ($notesHidden = !$notesHidden)}
+				>{$notesHidden ? 'Show' : 'Hide'} notes</button
+			>
+		{/if}
+		<button onclick={() => (controlsVisible = !controlsVisible)}
+			>{controlsVisible ? 'Hide' : 'Show'} controls</button
+		>
 	</div>
-
+	{#if currentPage > 0}
+		<button onclick={previousPage} class="page back" aria-label="Previous page">
+			<div></div>
+		</button>
+	{/if}
+	{#if pages.length > currentPage + 1}
+		<button onclick={nextPage} class="page next" aria-label="Next page">
+			<div></div>
+		</button>
+	{/if}
 	<div
 		class="tunes"
 		bind:this={tunesContainer}
-		class:two-column={$maxWidth! <= 50}
 		ontouchstart={handleTouchStart}
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
 	>
-		{#each tunes as tune, i}
-			<div
-				class="tune"
-				class:hidden={!visible[i]}
-				style="max-width: {$maxWidth}vw"
-				class:loading={!$maxWidth}
-				bind:this={tune.div}
-			>
-				{#if tune.originalKey}
-					<span class="original-key" class:hidden={hideControls}>
-						<KeySelect
-							transposition={tune.offset}
-							originalKey={tune.originalKey}
-							tuneSlug={tune.slug}
-						/></span
-					>
+		{#each currentPageTunes as tune (tune.slug)}
+			{@const thisTuneHidden = hiddenTuneSlugs.includes(tune.slug)}
+			<div class="tune" style="width: {width * widthAdjustment}vw" class:hidden={thisTuneHidden}>
+				<Tune
+					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+					{fontFamily}
+					tuneOffset={tune.offset}
+					globalTransposition={$globalTransposition}
+					onrerenderedAbc={(aspectRatio) => {
+						tune.aspectRatio = aspectRatio;
+						aspectRatioRecalculated++;
+					}}
+				/>
+				{#if controlsVisible}
+					<div class="tune-controls">
+						{#if tune.originalKey}
+							<span class="original-key">
+								<KeySelect
+									transposition={tune.offset}
+									originalKey={tune.originalKey}
+									tuneSlug={tune.slug}
+								/>
+							</span>
+						{/if}
+						<button onclick={() => tune.offset.update((o) => o - 12)}> -1 octave </button>
+						<button onclick={() => tune.offset.update((o) => o + 12)}> +1 octave </button>
+						{#if !hideCopyAbc}
+							<button id={`copy-${tune.slug}`} class="copy-abc" onclick={copy(tune.abc)}>
+								Copy ABC
+							</button>
+						{/if}
+						<button onclick={() => toggleHidden(tune)}
+							>{thisTuneHidden ? 'Show' : 'Hide'} tune</button
+						>
+					</div>
 				{/if}
-				<button
-					class:hidden={hideControls}
-					onclick={() => tune.offset?.update((offset) => offset - 12)}>Down an octave</button
-				>
-				<button
-					class:hidden={hideControls}
-					onclick={() => tune.offset?.update((offset) => offset + 12)}>Up an octave</button
-				>
-				{#if !hideCopyAbc}
-					<button
-						id={`copy-${tune.slug}`}
-						class:hidden={hideControls}
-						onclick={async () => {
-							try {
-								await navigator.clipboard.writeText(tune.abc);
-								const thisButton = document.getElementById(`copy-${tune.slug}`);
-								if (thisButton != null) {
-									thisButton.textContent = 'Copied!';
-									setTimeout(() => (thisButton.textContent = 'Copy ABC'), 2000);
-								}
-							} catch (e) {
-								console.error(e);
-							}
-						}}
-					>
-						Copy ABC
-					</button>
-				{/if}
-				<div
-					style="max-width: {($maxWidth || 0) *
-						(!hideControls && tune.widthCorrectionFactor ? tune.widthCorrectionFactor : 1)}vw"
-				>
-					<Tune
-						abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
-						globalTransposition={$globalTransposition}
-						tuneOffset={tune.offset}
-						{fontFamily}
-					/>
-				</div>
+			</div>
+		{/each}
+		{#each tunes.filter((t) => !currentPageTunes.includes(t) && !t.aspectRatio) as tune}
+			<div style="display: none">
+				<Tune
+					abc={applyClef($clef, stripUnwantedHeaders(tune.abc))}
+					{fontFamily}
+					tuneOffset={tune.offset}
+					globalTransposition={$globalTransposition}
+					onrerenderedAbc={(aspectRatio) => {
+						tune.aspectRatio = aspectRatio;
+						aspectRatioRecalculated++;
+					}}
+				/>
 			</div>
 		{/each}
 	</div>
 
 	{#if !$notesHidden}
-		<div class="notes-container">{@render children?.()}</div>
+		<div class="notes-container">
+			{@render children?.()}
+		</div>
+	{:else}
+		<div class="spacer" style="height: 2em;"></div>
 	{/if}
 </div>
-
-{#if displayFrom.length > 1}
-	<button onclick={previousPage} class="page back" aria-label="Previous page">
-		<div></div>
-	</button>
-{/if}
-{#if !visible[visible.length - 1]}
-	<button onclick={nextPage} class="page next" aria-label="Next page">
-		<div></div>
-	</button>
-{/if}
 
 {#if toastVisible}
 	<div class="toast">{toastMessage}</div>
 {/if}
 
 <style>
-	.toggle-controls {
-		position: absolute;
-		top: 0;
-		left: 50%;
-		transform: translateX(-50%);
-		font-size: 1.5rem;
-		padding: 1rem;
-	}
-	button:not(.page) {
+	.tune {
 		position: relative;
-		z-index: 10;
-	}
-	div {
-		display: block;
-	}
-	#controls {
-		margin: 0 auto;
+		height: max-content;
 	}
 
 	.page-container {
 		display: grid;
-		height: 100svh;
-		width: 100svw;
-		padding-top: 1rem;
+		width: 100dvw;
 		box-sizing: border-box;
-		max-width: 100svw;
+		max-width: 100dvw;
 	}
 
 	.tunes {
@@ -659,49 +597,58 @@
 		grid-area: notes;
 		padding: 0.2em 1em;
 	}
-	.controls-container {
-		grid-area: controls;
+	.spacer {
+		grid-area: notes;
 	}
-	.controls-container button {
-		position: relative;
-		z-index: 10;
-	}
-
 	.page-container:not(.notes-beside) {
-		grid-template-rows: auto 1fr auto;
+		grid-template-rows: 1fr auto;
 		grid-template-columns: 1fr;
 		grid-template-areas:
-			'controls'
 			'tunes'
 			'notes';
 	}
 
 	.page-container.notes-beside {
-		grid-template-columns: var(--notes-width, 33svw) 1fr;
-		grid-template-rows: auto 1fr;
-		grid-template-areas:
-			'controls controls'
-			'notes tunes';
+		grid-template-columns: var(--notes-width, 33dvw) 1fr;
+		grid-template-rows: 1fr 2em;
+		grid-template-areas: 'notes tunes';
 	}
 
-	/* TUNE CONTAINERS */
+	.original-key :global(select) {
+		font-size: 1rem;
+		background: white;
+		border: 1px solid rgb(156, 156, 156);
+		border-radius: 0.3rem;
+	}
+	.tune .tune-controls {
+		position: absolute;
+		bottom: 0.5rem;
+		left: 0;
+		right: 0;
+		width: auto;
+	}
+	.tune.hidden {
+		opacity: 0.5;
+	}
 	.tunes {
-		flex-direction: column;
 		min-height: 100%;
 		width: 100%;
 		display: flex;
-	}
-
-	.two-column {
+		flex-direction: column;
 		flex-wrap: wrap;
-		margin: 0 auto;
+		align-items: center;
 	}
-
-	.tune :global(select) {
-		position: relative;
+	.controls {
+		position: absolute;
+		right: 0rem;
+		bottom: 0rem;
 		z-index: 10;
+		background: white;
+		padding: 0.4rem;
 	}
-
+	.controls.open {
+		box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+	}
 	/* PAGE TURN BUTTONS */
 	button.page {
 		position: fixed;
@@ -710,6 +657,7 @@
 		width: min(15%, 10vw);
 		border: none;
 		background: none;
+		z-index: 5;
 	}
 
 	button.back {
@@ -737,33 +685,6 @@
 		border-left: 30px solid lightgray;
 		position: absolute;
 		right: 0.5em;
-	}
-
-	/* HIDING TUNES THAT AREN'T DISPLAYED */
-	.hidden {
-		display: none;
-	}
-
-	.tune {
-		margin: 0 auto;
-		width: 90%;
-	}
-
-	p {
-		margin: 0;
-		font-size: 0.8rem;
-		text-align: left;
-	}
-	p:last-of-type {
-		margin-bottom: 1em;
-	}
-	.key-reminder {
-		position: absolute;
-		top: 1.25rem;
-		right: 1.25rem;
-	}
-	.loading {
-		display: none;
 	}
 
 	.toast {

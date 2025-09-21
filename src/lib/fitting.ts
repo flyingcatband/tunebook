@@ -1,5 +1,4 @@
 import { BROWSER } from 'esm-env';
-import type { Set } from './types';
 
 /**
  * Calculates the maximum width for a set of SVGs to fit in a container.
@@ -93,7 +92,8 @@ export function manuallyPaginate(
 ) {
 	if (!BROWSER) return null;
 	// Tune width is a percentage of the viewport width, so we need to convert it to pixels
-	const columnWidth = window?.innerWidth * (tuneWidth / 100);
+	// Round column width to 2dp to prevent errors with 3 columns getting rounded down to 2
+	const columnWidth = Math.floor(availableWidth * tuneWidth) / 100;
 	const numColumns = Math.max(1, Math.floor(availableWidth / columnWidth));
 	if (isNaN(numColumns)) return null;
 
