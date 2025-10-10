@@ -121,7 +121,7 @@ function generateFolderFromMultiSetAbcString(
 		content: []
 	};
 
-	let inheritableHeaders = new Map<string, string>();
+	const inheritableHeaders = new Map<string, string>();
 	let currentSection: Section | undefined;
 	let currentSet: Set | undefined;
 	let currentTuneTitle = '';
@@ -129,7 +129,7 @@ function generateFolderFromMultiSetAbcString(
 	let currentTuneHeaders = new Map<string, string>();
 	let tuneNumber = 1;
 	let isInFirstSetTitle = false;
-	let sectionsOrder: string[] = [];
+	const sectionsOrder: string[] = [];
 	let composerValidations: string[] = [];
 	let inTuneBody = false; // true when we've started collecting tune body content
 

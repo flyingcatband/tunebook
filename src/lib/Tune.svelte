@@ -112,7 +112,7 @@
 			renderedAbc = renderAbcWithFormatting(dots);
 			untrack(() => {
 				const svg = renderedAbc![0]?.engraver?.renderer.paper.svg;
-				let [_0, _1, width, height] = svg
+				let [, , width, height] = svg
 					?.getAttribute('viewBox')
 					?.toString()
 					.split(' ')
@@ -126,7 +126,7 @@
 			untrack(() => {
 				renderedAbc = renderAbcWithFormatting('*');
 				const svg = renderedAbc[0]?.engraver?.renderer.paper.svg;
-				let [_0, _1, width, height] = svg
+				let [, , width, height] = svg
 					?.getAttribute('viewBox')
 					?.toString()
 					.split(' ')

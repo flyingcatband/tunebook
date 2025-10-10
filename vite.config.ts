@@ -9,5 +9,8 @@ export default defineConfig({
 	test: {
 		include: ['src/**/*.{spec,test}.{js,ts}'],
 		includeSource: ['src/**/*.{js,ts}']
+	},
+	server: {
+		allowedHosts: ['.ngrok-free.app']
 	}
 });

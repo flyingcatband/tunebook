@@ -125,7 +125,7 @@
 			// All tunes on one page
 			return [{ start: 0, end: visibleTunes.length - 1 }];
 		} else {
-			return manuallyPaginate(visibleTunes, containerWidth, containerHeight, $manualWidth) || [];
+			return manuallyPaginate(visibleTunes, containerWidth!, containerHeight!, $manualWidth) || [];
 		}
 	});
 
@@ -419,25 +419,11 @@
 			}
 		};
 	}
-
-	function copyDebugInfo(e: MouseEvent) {
-		navigator.clipboard
-			.writeText(
-				JSON.stringify({
-					containerWidth,
-					containerHeight,
-					innerWidth,
-					innerHeight,
-					width,
-					autozoom: $autozoomEnabled,
-					ars: tunes.map((t) => t.aspectRatio)
-				})
-			)
-			.then(() => {
-				showToast('Debug info copied');
-			});
-	}
 </script>
+
+<svelte:head>
+	<title>{set?.name} | {folderName}</title>
+</svelte:head>
 
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
@@ -451,7 +437,6 @@
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
-			<button onclick={copyDebugInfo}>Grab debug info</button>
 			<label for="transpose-set">Transpose set</label>
 			<select bind:value={$setTranspose} id="transpose-set">
 				<option value={6}>+6</option>
