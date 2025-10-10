@@ -7,6 +7,11 @@
 	let { data } = $props();
 	let coreTunesOnly = keyedLocalStorage('coreTunesOnly', false);
 	let isSetVisible = (set: Set) => !$coreTunesOnly || set.tags.includes('core');
+
+	function nukeLocalStorage() {
+		localStorage.clear();
+		location.reload();
+	}
 </script>
 
 <svelte:head>
@@ -21,6 +26,9 @@
 	a set will show you all the dots for that set.
 </p>
 
+<button onclick={nukeLocalStorage}>
+	Reset all user preferences (transpositions, zoom levels etc)
+</button>
 <h2>Global transposition options</h2>
 <GlobalTranspositionButtons showClefSwitcher />
 

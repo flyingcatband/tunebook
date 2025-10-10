@@ -207,6 +207,49 @@ test('set navigates to start when switching between different sets', async ({ pa
 	await expect(page.getByText('Seven Stars', { exact: true })).not.toBeInViewport();
 });
 
+test('pages are regenerated when switching between manually zoomed sets', async ({ page }) => {
+	await page.setViewportSize({ width: 1504, height: 882 });
+	// Navigate and wait for abc to render
+	await page.goto('/Jigs-2-Lots-of-jigs');
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
+
+	// Zoom in fully, so only one tune per page is visible
+	await page.getByRole('button', { name: 'Show controls' }).click();
+	const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+	await zoomIn.tap();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
+
+	// Check we can see the first tune, but not the second
+	await page.getByText('Next set', { exact: true }).click();
+
+	await expect(page.getByText('The Old Morpeth Rant', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Silver Spear', { exact: true })).toBeInViewport();
+
+	// Zoom in to one tune per page
+	while (!(await zoomIn.isDisabled())) {
+		await zoomIn.tap();
+	}
+
+	// Navigate to the second page of this set, check it actually did what we expected
+	await page.getByRole('button', { name: 'Next page' }).click();
+	await expect(page.getByText('The Old Morpeth Rant', { exact: true })).not.toBeInViewport();
+	await expect(page.getByText('The Silver Spear', { exact: true })).toBeInViewport();
+
+	// Navigate back to the previous set, check that we're sent to the start of said set
+	await page.getByRole('link', { name: 'Previous set' }).click();
+	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	await expect(page.getByText('Spirit of the Dance', { exact: true })).toBeInViewport();
+	await expect(page.getByText('The Roman Wall', { exact: true })).toBeInViewport();
+
+	// TODO check they are actually in the same positions as before
+});
+
 test('autozoom zooms tunes when showing and hiding controls via tapping', async ({ page }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
@@ -259,7 +302,7 @@ test('transposition summary recognises Bb/Eb', async ({ page }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
 	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
-	await page.getByRole('button', { name: 'Show controls' }).tap();
+	await page.getByRole('button', { name: 'Show controls' }).click();
 
 	let transpositionSubtitle = page.getByText('Transposed +2 (for B♭ instruments)', { exact: true });
 	await expect(transpositionSubtitle).not.toBeInViewport();
@@ -311,54 +354,12 @@ test('transposition selection quotes correct keys when globally transposed', asy
 		.toBe('2');
 
 	await page.goto('/Jigs-1-Severn-Stars');
+	await expect(page.getByText('Seven Stars', { exact: true })).toBeInViewport();
 	await page.getByRole('button', { name: 'Show controls' }).tap();
 	// In the original implementation, the transposition selection would show 'E
-	// (+2)' here since the labels ignored the global transpotition. This meant
+	// (+2)' here since the labels ignored the global transposition. This meant
 	// the labels didn't match the actual key shown in the ABC.
 	await expect(page.getByLabel('Transpose abc-seven-stars')).toContainText('F♯ (+2)');
-});
-
-test('manually zoomed tunes reflow to fit page when controls are hidden', async ({ page }) => {
-	page.setViewportSize({ width: 1600, height: 1150 });
-	const firstTune = page.getByText('The Old Morpeth Rant', { exact: true });
-	const secondTune = page.getByText('The Silver Spear', { exact: true });
-	await page.goto('/Reels-1-Some-reels');
-	await expect(secondTune).toBeInViewport();
-	await expect(firstTune).toBeInViewport();
-
-	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await page.getByRole('button', { name: 'Hide notes' }).tap();
-	await expect(secondTune).toBeInViewport();
-	await expect(firstTune).toBeInViewport();
-	const button = page.getByRole('button', { name: 'Zoom in' });
-	while (!(await button.isDisabled()) && (await secondTune.isVisible())) {
-		await button.tap();
-	}
-
-	await expect(secondTune).not.toBeInViewport();
-	await expect(firstTune).toBeInViewport();
-	await page.getByRole('button', { name: 'Hide controls' }).tap();
-	await expect(secondTune).toBeInViewport();
-	await expect(firstTune).toBeInViewport();
-});
-
-test('page controls work with controls shown and autozoom enabled', async ({ page }) => {
-	page.setViewportSize({ width: 1504, height: 840 });
-	await page.goto('/Jigs-2-Lots-of-jigs');
-	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
-
-	await page.getByRole('button', { name: 'Show controls' }).tap();
-	await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
-	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
-
-	await page.getByRole('button', { name: 'Next page' }).tap();
-	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).not.toBeInViewport();
-
-	await page.getByRole('button', { name: 'Hide controls' }).tap();
-	await expect(page.getByText('The Kesh', { exact: true })).toBeInViewport();
-	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
-	await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeInViewport();
 });
 
 test('set and tune notes can be hidden', async ({ page }) => {
@@ -560,6 +561,7 @@ describe('properties', () => {
 	test.setTimeout(TEST_TIMEOUT_MILLIS * 3);
 	const propPageWidth = fc.noShrink(fc.integer({ min: 360, max: 2000 }));
 	const propPageHeight = fc.noShrink(fc.integer({ min: 800, max: 2000 }));
+	const propZoomClicks = fc.noShrink(fc.integer({ min: 1, max: 10 }));
 	test('fitToPage always shows all tunes', async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await fc.assert(
@@ -629,15 +631,14 @@ describe('properties', () => {
 		});
 	});
 
-	test.skip(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
-		await page.goto('/Jigs-2-Lots-of-jigs');
-		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+	test(`zooming in from fit to page always makes a tune invisible`, async ({ page }) => {
+		await page.goto('/Reels-2-More-reels');
+		await expect(page.getByRole('img').first()).toBeInViewport();
 		await fc.assert(
 			fc.asyncProperty(propPageWidth, propPageHeight, async (width, height) => {
 				await page.setViewportSize({ width, height });
 				// Wait for the tunes to rerender at the new viewport size
 				await page.waitForTimeout(1000);
-				await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 
 				const tuneWidth = 'document.querySelector(".tune").getBoundingClientRect().width';
 				const originalWidth: number = await page.evaluate(tuneWidth);
@@ -650,6 +651,9 @@ describe('properties', () => {
 					await page.getByRole('button', { name: 'Hide controls' }).click();
 					await expect(page.getByText('The Kesh', { exact: true })).not.toBeInViewport();
 					await expect(await page.evaluate(tuneWidth)).toBeGreaterThan(originalWidth);
+					await page.getByRole('button', { name: 'Show controls' }).click();
+					await page.getByRole('button', { name: 'Fit to page' }).click();
+					await page.getByRole('button', { name: 'Hide controls' }).click();
 				} else {
 					await page.getByRole('button', { name: 'Hide controls' }).click();
 				}
@@ -658,6 +662,7 @@ describe('properties', () => {
 				timeout: TEST_TIMEOUT_MILLIS,
 				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS,
 				examples: [
+					[859, 316],
 					[363, 971],
 					[387, 1377]
 				]
@@ -665,7 +670,7 @@ describe('properties', () => {
 		);
 	});
 
-	test.skip(`zooming in with notes hidden makes a tune invisible`, async ({ page }) => {
+	test(`zooming in with notes hidden makes a tune invisible`, async ({ page }) => {
 		await page.goto('/Jigs-2-Lots-of-jigs');
 		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
 		await fc.assert(
@@ -704,6 +709,59 @@ describe('properties', () => {
 					[363, 971],
 					[368, 1994]
 				]
+			}
+		);
+	});
+
+	test('tunes appear consecutively when spread across pages', async ({ page }) => {
+		await page.goto('/Jigs-2-Lots-of-jigs');
+		await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
+		await fc.assert(
+			fc.asyncProperty(
+				propPageWidth,
+				propPageHeight,
+				propZoomClicks,
+				async (width, height, zoomClicks) => {
+					const expectedTunes = [
+						'The Cliffs Of Moher',
+						'Spirit of the Dance',
+						'The Roman Wall',
+						'The Kesh'
+					];
+					let currentTune = 0;
+
+					await page.setViewportSize({ width, height });
+
+					await page.getByRole('button', { name: 'Show controls' }).click();
+					const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+
+					while ((await zoomIn.isEnabled()) && zoomClicks-- > 0) {
+						await zoomIn.click();
+					}
+
+					allPages: while (currentTune < expectedTunes.length) {
+						for (const tune of await page.getByRole('img').all()) {
+							const expectedTune = expectedTunes[currentTune++];
+							await expect(tune.getByText(expectedTune, { exact: true })).toBeInViewport();
+							if (currentTune >= expectedTunes.length) break allPages;
+						}
+
+						await page.getByRole('button', { name: 'Next page' }).click();
+					}
+
+					expect(currentTune).toEqual(expectedTunes.length);
+					expect(page.getByRole('button', { name: 'Next page' })).not.toBeVisible();
+
+					if (await page.getByRole('button', { name: 'Fit to page' }).isVisible()) {
+						await page.getByRole('button', { name: 'Fit to page' }).click();
+					}
+					await page.getByRole('button', { name: 'Hide controls' }).click();
+				}
+			),
+
+			{
+				timeout: TEST_TIMEOUT_MILLIS,
+				interruptAfterTimeLimit: TEST_TIMEOUT_MILLIS
 			}
 		);
 	});

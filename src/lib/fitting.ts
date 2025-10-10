@@ -1,3 +1,5 @@
+import { BROWSER } from 'esm-env';
+
 /**
  * Calculates the maximum width for a set of SVGs to fit in a container.
  * The SVGs are arranged in columns, wrapping when a column is full.
@@ -80,4 +82,50 @@ export function calculateMaximumWidth(
 
 	// Convert the final optimal width (in pixels) to a percentage.
 	return (bestWidth / containerWidth) * 100;
+}
+
+export function manuallyPaginate(
+	tunes: { aspectRatio: number }[],
+	availableWidth: number,
+	availableHeight: number,
+	tuneWidth: number
+) {
+	if (!BROWSER) return null;
+	// Tune width is a percentage of the viewport width, so we need to convert it to pixels
+	// Round column width to 2dp to prevent errors with 3 columns getting rounded down to 2
+	const columnWidth = Math.floor(availableWidth * tuneWidth) / 100;
+	const numColumns = Math.max(1, Math.floor(availableWidth / columnWidth));
+	if (isNaN(numColumns)) return null;
+
+	const pages = [];
+	let firstTuneOnPage = 0;
+
+	pages: for (let page = 0; firstTuneOnPage < tunes.length; page++) {
+		const columnHeights = new Array(numColumns).fill(0);
+		let columnIndex = 0;
+		for (let i = firstTuneOnPage; i < tunes.length; i++) {
+			const tune = tunes[i];
+			const tuneHeight = columnWidth / tune.aspectRatio;
+			if (i > firstTuneOnPage && columnHeights[columnIndex] + tuneHeight > availableHeight) {
+				columnIndex++;
+			}
+			if (columnIndex >= numColumns) {
+				// No more columns available, so we can't display any more tunes
+				pages.push({ start: firstTuneOnPage, end: i - 1 });
+				firstTuneOnPage = i;
+				continue pages;
+			}
+
+			// At this point, either the column is tall enough to fit the tune,
+			// or the tune is too tall to fit in any column, so we just put it
+			// in the first free column
+			columnHeights[columnIndex] += tuneHeight;
+		}
+		if (firstTuneOnPage < tunes.length) {
+			pages.push({ start: firstTuneOnPage, end: tunes.length - 1 });
+			break;
+		}
+	}
+
+	return pages;
 }

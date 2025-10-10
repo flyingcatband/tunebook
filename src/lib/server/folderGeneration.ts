@@ -107,104 +107,290 @@ export async function generateFolderFromMultiSetAbcFile(
 	return generateFolderFromMultiSetAbcString(folderName, abc);
 }
 
-function generateFolderFromMultiSetAbcString(folderName: string, abc: string): Folder {
+function generateFolderFromMultiSetAbcString(
+	folderName: string,
+	abc: string,
+	options?: { per_tune_fields?: string[] }
+): Folder {
+	const perTuneFields = options?.per_tune_fields || ['W', 'w'];
+	const lines = abc.split('\n');
+	let lineNumber = 0;
+
 	const folder: Folder = {
 		name: folderName,
 		content: []
 	};
 
-	let sharedHeaders: string[] = [];
-	let currentAbc = '';
-	let globalKey = '';
-	let setTitle: string | undefined = undefined;
+	const inheritableHeaders = new Map<string, string>();
 	let currentSection: Section | undefined;
-	let currentSet: Set | undefined = undefined;
+	let currentSet: Set | undefined;
+	let currentTuneTitle = '';
+	let currentTuneContent: string[] = [];
+	let currentTuneHeaders = new Map<string, string>();
+	let tuneNumber = 1;
+	let isInFirstSetTitle = false;
+	const sectionsOrder: string[] = [];
+	let composerValidations: string[] = [];
+	let inTuneBody = false; // true when we've started collecting tune body content
 
-	const pushCurrentTune = () => {
-		if (!currentSet) throw Error('Not currently in a set');
-		if (currentSet?.content.length === 0 && setTitle) {
-			currentSet.content.push({
-				filename: '',
-				slug: slugify(setTitle, { strict: true }),
-				abc: ''
-			});
+	const createSlug = (name: string): string => {
+		return slugify(name, { strict: true });
+	};
+
+	const commitTuneHeaders = () => {
+		if (!inTuneBody && currentTuneTitle) {
+			// We're about to start the tune body, so commit the headers in the specified order
+			const orderedHeaders: string[] = [];
+
+			// Merge inherited headers with tune-specific headers (tune-specific take precedence)
+			const finalHeaders = new Map(inheritableHeaders);
+			for (const [key, value] of currentTuneHeaders) {
+				finalHeaders.set(key, value);
+			}
+
+			// Check if there's a composer validation for this tune
+			let tuneComposer: string | undefined;
+			for (const validation of composerValidations) {
+				const composerMatch = validation.match(/^(.*?)\s*\(([^)]+)\)$/);
+				if (composerMatch) {
+					const [, composer, tuneTitle] = composerMatch;
+					if (createSlug(tuneTitle) === createSlug(currentTuneTitle)) {
+						tuneComposer = composer.trim();
+						break;
+					}
+				}
+			}
+
+			// Standard header order: X:, T:, C:, M:, L:, K:, followed by others
+			orderedHeaders.push(`X:${tuneNumber++}`);
+			orderedHeaders.push(`T:${currentTuneTitle}`);
+
+			// Add headers in specified order
+			const headerOrder = ['C', 'M', 'L', 'K'];
+			for (const headerKey of headerOrder) {
+				if (finalHeaders.has(headerKey)) {
+					if (headerKey === 'C' && tuneComposer) {
+						orderedHeaders.push(`C:${tuneComposer}`);
+					} else {
+						orderedHeaders.push(`${headerKey}:${finalHeaders.get(headerKey)}`);
+					}
+				}
+			}
+
+			// Add any other headers not in the standard order
+			for (const [key, value] of finalHeaders) {
+				if (!['X', 'T', 'C', 'M', 'L', 'K'].includes(key)) {
+					orderedHeaders.push(`${key}:${value}`);
+				}
+			}
+
+			if (tuneComposer && !finalHeaders.has('C')) {
+				orderedHeaders.push(`C:${tuneComposer}`);
+			}
+
+			// Add the committed headers to tune content
+			currentTuneContent.unshift(...orderedHeaders);
+			inTuneBody = true;
 		}
-		const abc = `X:1\n` + sharedHeaders.join('\n') + `\n` + globalKey + currentAbc;
-		currentSet.content[currentSet?.content.length - 1].abc = abc;
+	};
+
+	const addTune = () => {
+		if (!currentSet || !currentTuneTitle) return;
+
+		// Clean up any inheritable headers that appear after the tune body is complete
+		// (trim from the end while we have inheritable header patterns)
+		while (currentTuneContent.length > 0) {
+			const lastLine = currentTuneContent[currentTuneContent.length - 1];
+			const headerMatch = lastLine.match(/^([A-Za-z]):/);
+			if (headerMatch && !perTuneFields.includes(headerMatch[1])) {
+				// This is an inheritable header at the end, remove it
+				currentTuneContent.pop();
+			} else {
+				break;
+			}
+		}
+
+		const abc = currentTuneContent.join('\n');
+
+		currentSet.content.push({
+			filename: '',
+			slug: createSlug(currentTuneTitle),
+			abc: abc.trim()
+		});
+
 		addTagsFrom(abc, currentSet.tags);
 	};
 
-	for (const line of abc.split('\n')) {
-		if (line.match(/X: *[0-9]+/)) {
-			if (currentAbc && setTitle) {
-				pushCurrentTune();
+	const processHeader = (line: string) => {
+		const match = line.match(/^([A-Za-z]):(.*)$/);
+		if (!match) return false;
+
+		const [, field, value] = match;
+		const cleanValue = value.trim();
+
+		if (field === 'P') return true;
+
+		if (field === 'C' && cleanValue.includes('(') && cleanValue.includes(')')) {
+			const composerMatch = cleanValue.match(/^(.*?)\s*\(([^)]+)\)$/);
+			if (composerMatch) {
+				composerValidations.push(cleanValue);
+				// Don't set this as inheritable, let it be processed per-tune
+				return true;
 			}
-			setTitle = undefined;
-			sharedHeaders = [];
 		}
 
-		const abcTitle = line.match(/T: *(.+)/)?.[1];
-		if (setTitle == null && abcTitle) {
-			setTitle = abcTitle;
-			let sectionTitle = setTitle.match(/(.+) [1-9][0-9a-d]? +- /)?.[1];
-			if (!sectionTitle) {
-				sectionTitle = setTitle.match(/(.+) +- /)?.[1];
+		if (perTuneFields.includes(field)) {
+			// Per-tune fields are never inherited, but should be included in current tune
+			if (currentTuneTitle && !inTuneBody) {
+				// We're in header collection phase for current tune
+				currentTuneHeaders.set(field, cleanValue);
+			} else if (currentTuneTitle && inTuneBody) {
+				// We're in tune body, copy header verbatim (but don't update inheritance)
+				currentTuneContent.push(line);
 			}
-			if (!sectionTitle) {
-				throw new Error(`Couldn't infer section title from "${setTitle}"`);
+			// If not in a tune, ignore per-tune fields completely
+		} else {
+			// Regular inheritable fields
+			if (currentTuneTitle && !inTuneBody) {
+				// We're in header collection phase for current tune
+				currentTuneHeaders.set(field, cleanValue);
+			} else if (currentTuneTitle && inTuneBody) {
+				// We're in tune body, copy header verbatim and update inheritance
+				currentTuneContent.push(line);
+				inheritableHeaders.set(field, cleanValue);
+			} else {
+				// We're not in a tune, so this is an inheritable header
+				inheritableHeaders.set(field, cleanValue);
 			}
-			if (currentSection?.name != sectionTitle) {
-				folder.content.push({
-					name: sectionTitle,
-					content: []
-				});
+		}
 
-				currentSection = folder.content[folder.content.length - 1];
+		return true;
+	};
+
+	for (const line of lines) {
+		lineNumber++;
+
+		if (line.trim() === '' || line.startsWith('%') || line.startsWith('%%abc')) continue;
+
+		const xMatch = line.match(/^X:\s*(\d+)/);
+		if (xMatch) {
+			if (currentTuneTitle) {
+				addTune();
+				currentTuneTitle = '';
+				currentTuneContent = [];
 			}
-			currentSection.content.push({
-				name: abcTitle,
-				slug: slugify(abcTitle, { strict: true }),
+			isInFirstSetTitle = true;
+			continue;
+		}
+
+		const tMatch = line.match(/^T:\s*(.+)$/);
+		if (tMatch && isInFirstSetTitle) {
+			const title = tMatch[1].trim();
+
+			// Try the original parsing logic first for backwards compatibility
+			let sectionName = title.match(/(.+) [1-9][0-9a-d]? +- /)?.[1];
+			if (!sectionName) {
+				sectionName = title.match(/(.+) +- /)?.[1];
+			}
+
+			if (!sectionName) {
+				throw new Error(
+					`Invalid set title format at line ${lineNumber}: "${title}". Expected "Section Name - Set Name"`
+				);
+			}
+
+			if (
+				sectionsOrder.includes(sectionName) &&
+				sectionsOrder[sectionsOrder.length - 1] !== sectionName
+			) {
+				throw new Error(`Non-contiguous sections: "${sectionName}" appears out of order`);
+			}
+
+			if (!sectionsOrder.includes(sectionName)) {
+				sectionsOrder.push(sectionName);
+				currentSection = {
+					name: sectionName,
+					content: []
+				};
+				folder.content.push(currentSection);
+			} else if (currentSection?.name !== sectionName) {
+				currentSection = folder.content.find((s) => s.name === sectionName);
+			}
+
+			// Validate any pending composer references from previous set
+			if (currentSet && composerValidations.length > 0) {
+				for (const validation of composerValidations) {
+					const composerMatch = validation.match(/^(.*?)\s*\(([^)]+)\)$/);
+					if (composerMatch) {
+						const [, , tuneTitle] = composerMatch;
+						if (!currentSet.content.some((tune) => tune.slug === createSlug(tuneTitle))) {
+							throw new Error(
+								`Invalid composer reference: tune "${tuneTitle}" not found in current set`
+							);
+						}
+					}
+				}
+				composerValidations = [];
+			}
+
+			currentSet = {
+				name: title,
+				slug: createSlug(title),
 				notes: [],
 				content: [],
 				tags: []
-			});
-			currentSet = currentSection.content[currentSection.content.length - 1];
-			currentAbc = '';
-		} else if (abcTitle) {
-			if (!currentSet) throw Error('Not currently in a set');
-			if (currentSet.content.length > 0) {
-				pushCurrentTune();
+			};
+			if (currentSection) {
+				currentSection.content.push(currentSet);
 			}
-			currentAbc = '';
-			currentSet.content.push({
-				filename: '',
-				slug: slugify(abcTitle, { strict: true }),
-				abc: ''
-			});
+			isInFirstSetTitle = false;
+			continue;
 		}
 
-		const setComment = line.match(/%%text +(.*)/)?.[1].trim();
-		if (setComment && currentSet?.content.length == 0) {
-			currentSet?.notes.push(setComment);
+		if (tMatch && !isInFirstSetTitle) {
+			if (currentTuneTitle) {
+				addTune();
+			}
+			currentTuneTitle = tMatch[1].trim();
+			currentTuneContent = [];
+			currentTuneHeaders = new Map();
+			inTuneBody = false;
+			continue;
 		}
 
-		if (currentSet?.content.length == 0) {
-			if (line.match(/[LMRG]:.*/)) {
-				sharedHeaders.push(line);
-			}
-			if (line.match(/K:.*/)) {
-				globalKey = `${line}\n`;
-			}
-		} else if (!line.match(/P: *[A-Z]/) && line.trim()) {
-			currentAbc += line;
-			currentAbc += '\n';
-			if (line.match(/K:.*/)) {
-				globalKey = '';
-			}
+		if (processHeader(line)) {
+			continue;
+		}
+
+		if (!currentSet && line.match(/^[A-Za-z]:/)) {
+			throw new Error(`Headers not allowed before first X: field at line ${lineNumber}`);
+		}
+
+		if (currentTuneTitle) {
+			// This is a non-header line, so commit headers if not already done
+			commitTuneHeaders();
+			currentTuneContent.push(line);
 		}
 	}
 
-	pushCurrentTune();
+	if (currentTuneTitle) {
+		addTune();
+	}
+
+	// Validate any remaining composer references at the end
+	if (currentSet && composerValidations.length > 0) {
+		for (const validation of composerValidations) {
+			const composerMatch = validation.match(/^(.*?)\s*\(([^)]+)\)$/);
+			if (composerMatch) {
+				const [, , tuneTitle] = composerMatch;
+				if (!currentSet.content.some((tune) => tune.slug === createSlug(tuneTitle))) {
+					throw new Error(
+						`Invalid composer reference: tune "${tuneTitle}" not found in current set`
+					);
+				}
+			}
+		}
+	}
 
 	return folder;
 }
@@ -310,6 +496,75 @@ if (import.meta.vitest) {
 			const folder = sut('Test folder', abc);
 
 			expect(folder.content[0].content[0].tags).toEqual(['English']);
+		});
+
+		it('processes composer field with tune title reference', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nC:Traditional (The High Reel)\nT:A tune\n% ...\nabcdef\nT:The High Reel\n% ...\nabcdef`;
+
+			const folder = sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[1].abc).toContain('C:Traditional');
+			expect(folder.content[0].content[0].content[0].abc).not.toContain('C:Traditional');
+		});
+
+		it('throws error for invalid composer tune reference', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nC:Traditional (Nonexistent Tune)\nT:A tune\n% ...\nabcdef`;
+
+			expect(() => sut('Test folder', abc)).toThrow(
+				'Invalid composer reference: tune "Nonexistent Tune" not found in current set'
+			);
+		});
+
+		it('processes multiple composer fields with different tune references', () => {
+			const abc = `X:1\nT:Jigs 1 - Som jigs\nC:O'Neill (First Tune)\nC:Traditional (Second Tune)\nT:First Tune\n% ...\nabcdef\nT:Second Tune\n% ...\nabcdef`;
+
+			const folder = sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[0].abc).toContain("C:O'Neill");
+			expect(folder.content[0].content[0].content[1].abc).toContain('C:Traditional');
+			expect(folder.content[0].content[0].content[0].abc).not.toContain('C:Traditional');
+			expect(folder.content[0].content[0].content[1].abc).not.toContain("C:O'Neill");
+		});
+
+		it('applies different time signatures to tunes based on header order', () => {
+			const abc = `X:1\nT:Odd sets 1 - Mixed time\nM:6/8\nT:First Tune\n% ...\nabcdef\nM:4/4\nT:Second Tune\n% ...\nabcdef\nT:Third Tune\n% ...\nabcdef`;
+
+			const folder = sut('Test folder', abc);
+
+			expect(folder.content[0].content[0].content[0].abc).toContain('M:6/8');
+			expect(folder.content[0].content[0].content[1].abc).toContain('M:4/4');
+			expect(folder.content[0].content[0].content[2].abc).toContain('M:4/4');
+			expect(folder.content[0].content[0].content[0].abc).not.toContain('M:4/4');
+			expect(folder.content[0].content[0].content[1].abc).not.toContain('M:6/8');
+		});
+
+		it('handles time signature change within tune body', () => {
+			const abc = `X:1\nT:Complex tunes 1 - Mixed internal time\nM:4/4\nT:Changing Tune\nABCD|EFGH|\nM:6/8\nijk|lmn|\nT:Next Tune\nopqr|`;
+
+			const folder = sut('Test folder', abc);
+
+			// First tune should have both time signatures in its body
+			const firstTuneAbc = folder.content[0].content[0].content[0].abc;
+			expect(firstTuneAbc).toContain('M:4/4');
+			expect(firstTuneAbc).toContain('M:6/8');
+			// The M:6/8 should appear in the middle of the tune content between music lines
+			expect(firstTuneAbc).toContain('ABCD|EFGH|\nM:6/8\nijk|lmn|');
+			// Second tune should inherit the last time signature (6/8)
+			expect(folder.content[0].content[0].content[1].abc).toContain('M:6/8');
+			expect(folder.content[0].content[0].content[1].abc).not.toContain('M:4/4');
+		});
+
+		it('does not inherit default per-tune fields (W and w)', () => {
+			const abc = `X:1\nT:Songs 1 - With lyrics\nT:First Song\nW:First verse line\nABCD|EFGH|\nw:first note syllables\nT:Second Song\nIJKL|MNOP|`;
+
+			const folder = sut('Test folder', abc);
+
+			// First tune should have the W and w fields
+			expect(folder.content[0].content[0].content[0].abc).toContain('W:First verse line');
+			expect(folder.content[0].content[0].content[0].abc).toContain('w:first note syllables');
+			// Second tune should NOT inherit these fields
+			expect(folder.content[0].content[0].content[1].abc).not.toContain('W:First verse line');
+			expect(folder.content[0].content[0].content[1].abc).not.toContain('w:first note syllables');
 		});
 	});
 

@@ -76,10 +76,32 @@
 			return [`${root}${mode}`, transposition] as const;
 		})
 	);
+
+	function keyNameFor(transposition: number): string {
+		const root =
+			ROOTS[
+				(((ROOT_NUMBERS[writtenKey] + 12 + transposition + $globalTransposition) % 12) + 12) % 12
+			];
+		let mode: string = originalKey.mode;
+		if (!mode.match(/m?/)) {
+			mode = ` ${mode}`;
+		}
+		return `${root}${mode}`;
+	}
 </script>
 
 <select bind:value={$transposition} aria-label="Transpose {tuneSlug}">
+	{#if $transposition > 12}
+		<option value={$transposition} selected
+			>{keyNameFor($transposition)} {displayTransposition($transposition)}</option
+		>
+	{/if}
 	{#each availableKeys.reverse() as [key, transposition]}
 		<option value={transposition}>{key} {displayTransposition(transposition)}</option>
 	{/each}
+	{#if $transposition <= -12}
+		<option value={$transposition} selected
+			>{keyNameFor($transposition)} {displayTransposition($transposition)}</option
+		>
+	{/if}
 </select>
