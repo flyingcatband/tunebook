@@ -208,7 +208,7 @@ test('set navigates to start when switching between different sets', async ({ pa
 });
 
 test('pages are regenerated when switching between manually zoomed sets', async ({ page }) => {
-	await page.setViewportSize({ width: 1504, height: 882 });
+	await page.setViewportSize({ width: 1504, height: 920 });
 	// Navigate and wait for abc to render
 	await page.goto('/Jigs-2-Lots-of-jigs');
 	await expect(page.getByText('The Cliffs Of Moher', { exact: true })).toBeInViewport();
