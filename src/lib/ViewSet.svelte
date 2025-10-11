@@ -67,6 +67,8 @@
 		})
 	);
 
+	let innerHeight = $state(BROWSER && window.innerHeight);
+	let innerWidth = $state(BROWSER && window.innerWidth);
 	let tunesContainer: HTMLDivElement | undefined = $state();
 	let containerWidth: number | undefined = $state();
 	let containerHeight: number | undefined = $state();
@@ -428,7 +430,7 @@
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
 {/if}
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} bind:innerHeight bind:innerWidth />
 <div
 	class="page-container"
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
