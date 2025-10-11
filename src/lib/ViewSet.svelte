@@ -435,7 +435,7 @@
 	class="page-container"
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
 	bind:this={pageContainer}
-	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight - pageContainer?.getBoundingClientRect().top}px` : ''}`}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight - pageContainer?.getBoundingClientRect().top * 2}px` : ''}`}
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
