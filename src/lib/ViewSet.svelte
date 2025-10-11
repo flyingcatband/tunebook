@@ -479,7 +479,7 @@
 			>{controlsVisible ? 'Hide' : 'Show'} controls</button
 		>
 	</div>
-	{#if currentPage > 0}
+	{#if currentPage > 0 && pages.length > 1}
 		<button onclick={previousPage} class="page back" aria-label="Previous page">
 			<div></div>
 		</button>

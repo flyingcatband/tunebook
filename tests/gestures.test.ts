@@ -505,4 +505,37 @@ test.describe('Gesture Tests', () => {
 		]);
 		await expect(page.locator('.toast')).toContainText('Fit to page enabled');
 	});
+
+	test('previous page button should not appear when zooming reduces pages to one after hiding tunes', async ({
+		page
+	}) => {
+		await page.goto('/Jigs-1-Severn-Stars');
+		await expect(page.getByText('Upton upon Severn Stick Dance', { exact: true })).toBeInViewport();
+
+		await page.getByRole('button', { name: 'Show controls' }).click();
+
+		const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+		while (
+			!(await zoomIn.isDisabled()) &&
+			(await page.getByText('Seven Stars', { exact: true }).isVisible())
+		) {
+			await zoomIn.click();
+		}
+
+		await expect(page.getByRole('button', { name: 'Next page' })).toBeVisible();
+
+		const firstTune = page.locator('.tune').first();
+		const hideButton = firstTune.getByRole('button', { name: 'Hide tune' });
+		await hideButton.click();
+
+		await page.getByRole('button', { name: 'Next page' }).click();
+
+		await expect(
+			page.getByText('Upton upon Severn Stick Dance', { exact: true })
+		).not.toBeInViewport();
+
+		await page.getByRole('button', { name: 'Hide controls' }).click();
+
+		await expect(page.getByRole('button', { name: 'Previous page' })).not.toBeVisible();
+	});
 });
