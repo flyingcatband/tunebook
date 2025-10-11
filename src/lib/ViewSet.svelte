@@ -67,8 +67,8 @@
 		})
 	);
 
-	let innerHeight = $state(BROWSER && window.innerHeight);
-	let innerWidth = $state(BROWSER && window.innerWidth);
+	let innerHeight = $state(BROWSER ? window.innerHeight : 0);
+	let innerWidth = $state(BROWSER ? window.innerWidth : 0);
 	let tunesContainer: HTMLDivElement | undefined = $state();
 	let containerWidth: number | undefined = $state();
 	let containerHeight: number | undefined = $state();
@@ -435,7 +435,7 @@
 	class="page-container"
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
 	bind:this={pageContainer}
-	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight - pageContainer?.getBoundingClientRect().top * 2}px` : ''}`}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}`}
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
@@ -632,6 +632,12 @@
 		z-index: 10;
 		background: white;
 		padding: 0.4rem;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		align-items: center;
+		justify-content: flex-end;
+		max-width: min(100vw, 40rem);
 	}
 	.controls.open {
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
