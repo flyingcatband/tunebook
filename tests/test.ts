@@ -500,6 +500,7 @@ describe('wakelock', () => {
 
 						// 1. Notify our test by calling the function we exposed.
 						// The 'as any' is used to tell TypeScript that we know window.onWakeLockRequest exists.
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						(window as any).onWakeLockRequest(type);
 
 						// 2. Call the original function to ensure the app behaves as expected.

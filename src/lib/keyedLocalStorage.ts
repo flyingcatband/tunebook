@@ -1,6 +1,7 @@
 import { BROWSER } from 'esm-env';
 import { get, writable, type Writable } from 'svelte/store';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const stores = new Map<string, Writable<any>>();
 
 export function keyedLocalStorage<T>(key: string, defaultValue: T): Writable<T> {

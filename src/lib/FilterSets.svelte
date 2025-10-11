@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Folder } from '$lib/types/index.js';
+	import type { Folder, Section } from '$lib/types/index.js';
 	import { keyedLocalStorage } from './keyedLocalStorage';
 
 	interface Props {
@@ -7,7 +7,7 @@
 		folder: Folder;
 		/** The title to display above the filter checkboxes */
 		filtersTitle?: string;
-		children?: import('svelte').Snippet<[any]>;
+		children?: import('svelte').Snippet<[{ visibleSections: Section[] }]>;
 	}
 
 	let { folder, filtersTitle = 'Filter sets', children }: Props = $props();
@@ -18,15 +18,7 @@
 	if (folder.content.every((f) => !$visible[f.name])) {
 		resetFilters();
 	}
-	folder.content.forEach((f) => {
-		if ($visible[f.name] === undefined) {
-			$visible[f.name] = true;
-		}
-	});
-	let visibleSections = $state(folder.content);
-	$effect.pre(() => {
-		visibleSections = folder.content.filter((f) => $visible[f.name]);
-	});
+	let visibleSections = $derived(folder.content.filter((f) => $visible[f.name]));
 	function resetFilters() {
 		folder.content.forEach((f) => ($visible[f.name] = true));
 	}

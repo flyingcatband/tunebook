@@ -5,7 +5,8 @@ export default defineConfig({
 	define: {
 		'import.meta.vitest': 'undefined'
 	},
-	plugins: [sveltekit()],
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	plugins: [sveltekit() as any],
 	test: {
 		include: ['src/**/*.{spec,test}.{js,ts}'],
 		includeSource: ['src/**/*.{js,ts}']

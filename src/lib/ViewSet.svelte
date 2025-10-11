@@ -463,11 +463,11 @@
 				</select>
 			{/if}
 			<span>Current zoom level {width}%</span>
+			<button onclick={zoomOut} disabled={width <= MIN_WIDTH} aria-label="Zoom out">-</button>
+			<button onclick={zoomIn} disabled={width >= MAX_WIDTH} aria-label="Zoom in">+</button>
 			{#if !$autozoomEnabled}
 				<button onclick={fitToPage}>Fit to page</button>
 			{/if}
-			<button onclick={zoomOut} disabled={width <= MIN_WIDTH} aria-label="Zoom out">-</button>
-			<button onclick={zoomIn} disabled={width >= MAX_WIDTH} aria-label="Zoom in">+</button>
 			<button onclick={() => ($notesBeside = !$notesBeside)}
 				>Notes {$notesBeside ? 'below' : 'beside'}</button
 			>
