@@ -142,6 +142,7 @@
 	);
 	let notesBeside = $derived(persistedLayoutVar(`notesBeside`, false));
 	let notesHidden = $derived(persistedLayoutVar(`notesHidden`, false));
+	let notesWidth = $derived(persistedLayoutVar(`notesWidth`, 33));
 
 	let preservedFieldRegex = $derived(
 		new RegExp(
@@ -287,6 +288,10 @@
 	let swipeStartTime: number | null = null;
 	let toastMessage = $state('');
 	let toastVisible = $state(false);
+	let isResizingNotes = $state(false);
+	let resizeStartX = $state(0);
+	let resizeStartWidth = $state(0);
+	let lastResizeHandleTap = $state(0);
 
 	function getDistance(touches: TouchList) {
 		const [touch1, touch2] = [touches[0], touches[1]];
@@ -421,6 +426,40 @@
 			}
 		};
 	}
+
+	function handleResizeStart(event: MouseEvent | TouchEvent) {
+		const currentTime = Date.now();
+
+		// Check for double click/tap
+		if (currentTime - lastResizeHandleTap < 300) {
+			// Reset to default width
+			$notesWidth = 33;
+			showToast('Notes width reset to default');
+			lastResizeHandleTap = 0;
+			event.preventDefault();
+			return;
+		}
+
+		lastResizeHandleTap = currentTime;
+		isResizingNotes = true;
+		resizeStartX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+		resizeStartWidth = $notesWidth;
+		event.preventDefault();
+	}
+
+	function handleResizeMove(event: MouseEvent | TouchEvent) {
+		if (!isResizingNotes) return;
+		const currentX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+		const deltaX = currentX - resizeStartX;
+		const deltaVw = (deltaX / innerWidth) * 100;
+		const newWidth = Math.max(15, Math.min(60, resizeStartWidth + deltaVw));
+		$notesWidth = newWidth;
+		event.preventDefault();
+	}
+
+	function handleResizeEnd() {
+		isResizingNotes = false;
+	}
 </script>
 
 <svelte:head>
@@ -430,12 +469,20 @@
 {#if !preventWakelock}
 	<drab-wakelock locked auto-lock></drab-wakelock>
 {/if}
-<svelte:window {onkeydown} bind:innerHeight bind:innerWidth />
+<svelte:window
+	{onkeydown}
+	bind:innerHeight
+	bind:innerWidth
+	onmousemove={handleResizeMove}
+	onmouseup={handleResizeEnd}
+	ontouchmove={handleResizeMove}
+	ontouchend={handleResizeEnd}
+/>
 <div
 	class="page-container"
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
 	bind:this={pageContainer}
-	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}`}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}; ${$notesBeside && slotFilled && !$notesHidden ? `--stored-notes-width: ${$notesWidth}dvw;` : ''}`}
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
@@ -552,6 +599,20 @@
 
 	{#if !$notesHidden}
 		<div class="notes-container">
+			{#if $notesBeside && controlsVisible}
+				<div class="resize-track">
+					<button
+						class="resize-handle"
+						onmousedown={handleResizeStart}
+						ontouchstart={handleResizeStart}
+						aria-label="Resize notes panel (double-click to reset)"
+					>
+						<span class="grip-line"></span>
+						<span class="grip-line"></span>
+						<span class="grip-line"></span>
+					</button>
+				</div>
+			{/if}
 			{@render children?.()}
 		</div>
 	{:else}
@@ -583,6 +644,57 @@
 	.notes-container {
 		grid-area: notes;
 		padding: 0.2em 1em;
+		position: relative;
+	}
+
+	.resize-track {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 8px;
+		height: 100%;
+		background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1));
+		z-index: 10;
+		transition: background 0.2s;
+		pointer-events: none;
+	}
+
+	.resize-handle {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 24px;
+		height: 48px;
+		cursor: ew-resize;
+		background: white;
+		border: 1px solid rgba(0, 0, 0, 0.2);
+		border-radius: 4px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+		padding: 0;
+		transition: all 0.2s;
+		pointer-events: auto;
+	}
+
+	.resize-handle:hover {
+		background: #f5f5f5;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+	}
+
+	.resize-handle:active {
+		background: #e8e8e8;
+	}
+
+	.grip-line {
+		width: 2px;
+		height: 16px;
+		background: rgba(0, 0, 0, 0.3);
+		border-radius: 1px;
+		pointer-events: none;
 	}
 	.spacer {
 		grid-area: notes;
@@ -596,7 +708,7 @@
 	}
 
 	.page-container.notes-beside {
-		grid-template-columns: var(--notes-width, 33dvw) 1fr;
+		grid-template-columns: var(--stored-notes-width, var(--notes-width, 33dvw)) 1fr;
 		grid-template-rows: 1fr 2em;
 		grid-template-areas: 'notes tunes';
 	}
