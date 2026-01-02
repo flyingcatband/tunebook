@@ -407,6 +407,40 @@ test('first page remains unchanged upon return', async ({ page }) => {
 	await expect(secondTune).toBeInViewport();
 });
 
+test('manually zoomed sets paginate when navigated to from homepage', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('link', { name: 'Some reels' }).click();
+	const secondTune = page.getByText('The Silver Spear', { exact: true });
+	const thirdTune = page.getByText("Paddy's Trip To Scotland", { exact: true });
+	await expect(thirdTune).toBeInViewport();
+
+	await page.getByRole('button', { name: 'Show controls' }).tap();
+	const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+	// Zoom in until the third tune disappears
+	while (!(await zoomIn.isDisabled()) && (await thirdTune.isVisible())) {
+		await zoomIn.tap();
+	}
+
+	await expect(thirdTune).not.toBeInViewport();
+	await expect(secondTune).toBeInViewport();
+
+	await page.getByRole('link', { name: 'All sets' }).click();
+	await page.getByRole('link', { name: 'Some reels' }).click();
+
+	await expect(secondTune).toBeInViewport();
+	await expect(thirdTune).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Next page' }).click();
+
+	await expect(thirdTune).toBeInViewport();
+	await expect(secondTune).not.toBeInViewport();
+
+	await page.getByRole('button', { name: 'Previous page' }).click();
+
+	await expect(thirdTune).not.toBeInViewport();
+	await expect(secondTune).toBeInViewport();
+});
+
 test('tune abc can be copied', async ({ page, context }) => {
 	await page.goto('/Jigs-1-Severn-Stars');
 	const tuneTitle = 'Upton upon Severn Stick Dance';

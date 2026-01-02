@@ -76,6 +76,7 @@
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
 	let controlsVisible = $state(false);
 	let pageContainer: Element | undefined = $state();
+	let previousPages: { start: number; end: number }[] = [];
 
 	function normalise(transposition: number) {
 		const positiveValue = ((transposition % 12) + 12) % 12;
@@ -128,6 +129,20 @@
 			return [{ start: 0, end: visibleTunes.length - 1 }];
 		} else {
 			return manuallyPaginate(visibleTunes, containerWidth!, containerHeight!, $manualWidth) || [];
+		}
+	});
+	let pagesChanged: boolean = $derived.by(() => {
+		if (
+			pages.every(
+				({ start, end }, index) =>
+					previousPages?.[index]?.start === start && previousPages?.[index]?.end === end
+			)
+		) {
+			previousPages = pages;
+			return false;
+		} else {
+			previousPages = pages;
+			return true;
 		}
 	});
 
@@ -480,9 +495,10 @@
 />
 <div
 	class="page-container"
+	class:loading={!pageContainer?.getBoundingClientRect()}
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
 	bind:this={pageContainer}
-	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}; ${$notesBeside && slotFilled && !$notesHidden ? `--stored-notes-width: ${$notesWidth}dvw;` : ''}`}
+	style={`margin-top: 2.5em; ${BROWSER && pageContainer /*&& !pagesChanged*/ ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}; ${$notesBeside && slotFilled && !$notesHidden ? `--stored-notes-width: ${$notesWidth}dvw;` : ''}`}
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
@@ -635,6 +651,9 @@
 		width: 100dvw;
 		box-sizing: border-box;
 		max-width: 100dvw;
+	}
+	.page-container.loading {
+		max-height: calc(100dvh - 2.5em);
 	}
 
 	.tunes {

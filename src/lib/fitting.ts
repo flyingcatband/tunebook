@@ -91,6 +91,9 @@ export function manuallyPaginate(
 	tuneWidth: number
 ) {
 	if (!BROWSER) return null;
+	// If we have no height info to go off, assume one tune per page
+	// It will recalculate this once the height exists but this will prevent the page being too tall
+	if (!availableHeight) return tunes.map((_, index) => ({ start: index, end: index }));
 	// Tune width is a percentage of the viewport width, so we need to convert it to pixels
 	// Round column width to 2dp to prevent errors with 3 columns getting rounded down to 2
 	const columnWidth = Math.floor(availableWidth * tuneWidth) / 100;
