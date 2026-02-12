@@ -13,10 +13,4 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile]
       - run: pnpm build
-      - uses: JS-DevTools/npm-publish@v4
-        id: publish
-        with:
-          access: public
-      - name: Assert actually published an updated package
-        if: ${{ ! steps.publish.outputs.type }}
-        run: echo "💥 Package wasn't updated on npm! did you forget to update the version number in your package.json? 💥" && exit 1
+      - run: pnpm publish
