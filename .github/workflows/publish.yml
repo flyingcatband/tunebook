@@ -20,4 +20,4 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile]
       - run: pnpm build
-      - run: npm publish
+      - uses: JS-DevTools/npm-publish@v4
