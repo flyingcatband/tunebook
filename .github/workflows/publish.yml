@@ -21,3 +21,5 @@ jobs:
             - args: [--frozen-lockfile]
       - run: pnpm build
       - uses: JS-DevTools/npm-publish@v4
+        with:
+          tag: auto
