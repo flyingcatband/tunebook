@@ -1,6 +1,7 @@
 {
 	"name": "@flyingcatband/tunebook",
 	"version": "0.15.0-beta.6",
+	"url": "https://github.com/flyingcatband/tunebook",
 	"license": "MIT",
 	"files": [
 		"dist"
