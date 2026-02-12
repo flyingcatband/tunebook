@@ -483,7 +483,7 @@
 	class:loading={!pageContainer?.getBoundingClientRect()}
 	class:notes-beside={$notesBeside && slotFilled && !$notesHidden}
 	bind:this={pageContainer}
-	style={`margin-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}; ${$notesBeside && slotFilled && !$notesHidden ? `--stored-notes-width: ${$notesWidth}dvw;` : ''}`}
+	style={`padding-top: 2.5em; ${BROWSER && pageContainer ? `height: ${innerHeight! - pageContainer?.getBoundingClientRect().top * 2}px` : ''}; ${$notesBeside && slotFilled && !$notesHidden ? `--stored-notes-width: ${$notesWidth}dvw;` : ''}`}
 >
 	<div class="controls" class:open={controlsVisible}>
 		{#if controlsVisible}
