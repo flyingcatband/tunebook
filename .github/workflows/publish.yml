@@ -5,8 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   id-token: write
+  contents: read
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,4 +16,4 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile]
       - run: pnpm build
-      - run: pnpm publish
+      - run: npm publish
