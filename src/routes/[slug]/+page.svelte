@@ -7,8 +7,8 @@
 
 <nav>
 	<a class="button" href="/">All sets</a>
-	<a class="button" href="/{set.previousSlug}">Previous set</a>
-	<a class="button" href="/{set.nextSlug}">Next set</a>
+	<a class="button" href={resolve('/[slug]', { slug: set.previousSlug })}>Previous set</a>
+	<a class="button" href={resolve('/[slug]', { slug: set.nextSlug })}>Next set</a>
 </nav>
 <ViewSet
 	{set}
