@@ -9,6 +9,7 @@
 	import { BROWSER } from 'esm-env';
 	import KeySelect from './KeySelect.svelte';
 	import type { MouseEventHandler } from 'svelte/elements';
+	import { goto } from '$app/navigation';
 
 	const { renderAbc } = abcjsPkg;
 	interface Props {
@@ -74,6 +75,8 @@
 	let containerHeight: number | undefined = $state();
 	let hiddenTuneSlugs: string[] = $state([]);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
+	let globalNavThruSets = keyedLocalStorage(`globalNavThruSets`, false);
+
 	let controlsVisible = $state(false);
 	let pageContainer: Element | undefined = $state();
 
@@ -211,12 +214,20 @@
 	function nextPage() {
 		if (currentPage + 1 < pages.length) {
 			currentPage += 1;
+		} else {
+			if ($globalNavThruSets && set.nextSlug !== undefined) {
+				goto(set.nextSlug);
+			}
 		}
 	}
 
 	function previousPage() {
 		if (currentPage > 0) {
 			currentPage -= 1;
+		} else {
+			if ($globalNavThruSets && set.previousSlug !== undefined) {
+				goto(set.previousSlug);
+			}
 		}
 	}
 
