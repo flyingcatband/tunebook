@@ -9,7 +9,6 @@
 	import { BROWSER } from 'esm-env';
 	import KeySelect from './KeySelect.svelte';
 	import type { MouseEventHandler } from 'svelte/elements';
-	import { goto } from '$app/navigation';
 
 	const { renderAbc } = abcjsPkg;
 	interface Props {
@@ -32,6 +31,8 @@
 		settingsScope?: string;
 		/** Optionally hide the button which allows users to copy the abc notation of each tune*/
 		hideCopyAbc?: boolean;
+		nextSetHref?: string;
+		previousSetHref?: string;
 		children: Snippet;
 	}
 
@@ -47,7 +48,9 @@
 		displayAbcFields = 'TNC',
 		preventWakelock = false,
 		settingsScope = '',
-		hideCopyAbc = false
+		hideCopyAbc = false,
+		nextSetHref,
+		previousSetHref
 	}: Props = $props();
 
 	type ExtraTuneProps = {
@@ -211,12 +214,23 @@
 		currentPage = 0;
 	}
 
+	async function navigateToSet(href: string) {
+		try {
+			// Try to use SvelteKit's goto if available
+			const { goto } = await import('$app/navigation');
+			goto(href);
+		} catch {
+			// Fall back to standard navigation if SvelteKit is not available
+			window.location.href = href;
+		}
+	}
+
 	function nextPage() {
 		if (currentPage + 1 < pages.length) {
 			currentPage += 1;
 		} else {
-			if ($globalNavThruSets && set.nextSlug !== undefined) {
-				goto(set.nextSlug);
+			if ($globalNavThruSets && nextSetHref !== undefined) {
+				navigateToSet(nextSetHref);
 			}
 		}
 	}
@@ -225,8 +239,8 @@
 		if (currentPage > 0) {
 			currentPage -= 1;
 		} else {
-			if ($globalNavThruSets && set.previousSlug !== undefined) {
-				goto(set.previousSlug);
+			if ($globalNavThruSets && previousSetHref !== undefined) {
+				navigateToSet(previousSetHref);
 			}
 		}
 	}

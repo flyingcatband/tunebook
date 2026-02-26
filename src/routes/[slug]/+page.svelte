@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ViewSet from '$lib/ViewSet.svelte';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 	let set = $derived(data.set);
 </script>
@@ -11,6 +12,8 @@
 </nav>
 <ViewSet
 	{set}
+	nextSetHref={resolve('/[slug]', { slug: set.nextSlug })}
+	previousSetHref={resolve('/[slug]', { slug: set.previousSlug })}
 	folderName={data.folder.name}
 	fontFamily="sans-serif"
 	displayAbcFields="TNCRO"
