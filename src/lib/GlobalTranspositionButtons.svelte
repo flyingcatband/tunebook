@@ -6,15 +6,22 @@
 	interface Props {
 		/** Should the clef switcher be shown? */
 		showClefSwitcher?: boolean;
+		/** Should the navigation mode switcher be shown? */
+		showNavSwitcher?: boolean;
 	}
 
-	let { showClefSwitcher = false }: Props = $props();
+	let { showClefSwitcher = false, showNavSwitcher = false }: Props = $props();
 
 	let globalTransposition = keyedLocalStorage('globalTransposition', 0);
 	let globalClef: Writable<Clef> = keyedLocalStorage('globalClef', 'treble');
+	let globalNavThruSets: Writable<boolean> = keyedLocalStorage('globalNavThruSets', false);
 
 	function toggleClef() {
 		globalClef.update((c) => (c === 'treble' ? 'bass' : 'treble'));
+	}
+
+	function toggleNavThru() {
+		globalNavThruSets.update((c) => !c);
 	}
 </script>
 
@@ -25,6 +32,11 @@
 	{#if showClefSwitcher}
 		<button onclick={toggleClef}>
 			{$globalClef === 'treble' ? 'Switch to bass clef' : 'Switch to treble clef'}
+		</button>
+	{/if}
+	{#if showNavSwitcher}
+		<button onclick={toggleNavThru}>
+			{$globalNavThruSets ? 'Forbid nav between sets' : 'Allow nav between sets'}
 		</button>
 	{/if}
 </div>

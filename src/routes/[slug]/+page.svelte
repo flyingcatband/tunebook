@@ -1,16 +1,19 @@
 <script lang="ts">
 	import ViewSet from '$lib/ViewSet.svelte';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 	let set = $derived(data.set);
 </script>
 
 <nav>
 	<a class="button" href="/">All sets</a>
-	<a class="button" href="/{set.previousSlug}">Previous set</a>
-	<a class="button" href="/{set.nextSlug}">Next set</a>
+	<a class="button" href={resolve('/[slug]', { slug: set.previousSlug })}>Previous set</a>
+	<a class="button" href={resolve('/[slug]', { slug: set.nextSlug })}>Next set</a>
 </nav>
 <ViewSet
 	{set}
+	nextSetHref={resolve('/[slug]', { slug: set.nextSlug })}
+	previousSetHref={resolve('/[slug]', { slug: set.previousSlug })}
 	folderName={data.folder.name}
 	fontFamily="sans-serif"
 	displayAbcFields="TNCRO"

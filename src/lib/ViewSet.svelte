@@ -31,6 +31,8 @@
 		settingsScope?: string;
 		/** Optionally hide the button which allows users to copy the abc notation of each tune*/
 		hideCopyAbc?: boolean;
+		nextSetHref?: string;
+		previousSetHref?: string;
 		children: Snippet;
 	}
 
@@ -46,7 +48,9 @@
 		displayAbcFields = 'TNC',
 		preventWakelock = false,
 		settingsScope = '',
-		hideCopyAbc = false
+		hideCopyAbc = false,
+		nextSetHref,
+		previousSetHref
 	}: Props = $props();
 
 	type ExtraTuneProps = {
@@ -74,6 +78,8 @@
 	let containerHeight: number | undefined = $state();
 	let hiddenTuneSlugs: string[] = $state([]);
 	let globalTransposition = keyedLocalStorage(`globalTransposition`, 0);
+	let globalNavThruSets = keyedLocalStorage(`globalNavThruSets`, false);
+
 	let controlsVisible = $state(false);
 	let pageContainer: Element | undefined = $state();
 
@@ -208,15 +214,34 @@
 		currentPage = 0;
 	}
 
+	async function navigateToSet(href: string) {
+		try {
+			// Try to use SvelteKit's goto if available
+			const { goto } = await import('$app/navigation');
+			goto(href);
+		} catch {
+			// Fall back to standard navigation if SvelteKit is not available
+			window.location.href = href;
+		}
+	}
+
 	function nextPage() {
 		if (currentPage + 1 < pages.length) {
 			currentPage += 1;
+		} else {
+			if ($globalNavThruSets && nextSetHref !== undefined) {
+				navigateToSet(nextSetHref);
+			}
 		}
 	}
 
 	function previousPage() {
 		if (currentPage > 0) {
 			currentPage -= 1;
+		} else {
+			if ($globalNavThruSets && previousSetHref !== undefined) {
+				navigateToSet(previousSetHref);
+			}
 		}
 	}
 

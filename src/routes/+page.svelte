@@ -29,8 +29,8 @@
 <button onclick={nukeLocalStorage}>
 	Reset all user preferences (transpositions, zoom levels etc)
 </button>
-<h2>Global transposition options</h2>
-<GlobalTranspositionButtons showClefSwitcher />
+<h2>Global options</h2>
+<GlobalTranspositionButtons showClefSwitcher showNavSwitcher />
 
 <div class="filterable-sets-grid">
 	<FilterableSetsGrid folder={data.folder} tuneFont="sans-serif" {isSetVisible} hideSectionNames>
